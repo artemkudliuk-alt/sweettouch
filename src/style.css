@@ -119,6 +119,9 @@ main { position: relative; z-index: 1; }
 }
 .nav__icon svg { width: 18px; height: 18px; }
 .nav__icon:hover { background: var(--chair); color: var(--nuit); box-shadow: none; }
+/* Phones and tablets: the call button stays in the header and rings now and then */
+@keyframes ring { 0%, 76%, 100% { transform: rotate(0); } 80%, 88% { transform: rotate(-14deg); } 84%, 92% { transform: rotate(14deg); } }
+.promo { display: none; }
 .btn--sm { padding: 13px 22px; font-size: 15px; margin-left: 6px; }
 
 /* ---------- Full-screen menu ---------- */
@@ -347,7 +350,9 @@ main { position: relative; z-index: 1; }
 .foot__muted { opacity: 0.6; margin: 16px 0 10px; }
 .foot__soc { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .foot__links { display: grid; grid-template-columns: repeat(2, auto); gap: 10px 64px; opacity: 0.75; }
-.foot__contact { font-style: normal; display: grid; gap: 10px; font-size: 15px; }
+.foot__contact { font-style: normal; display: grid; gap: 12px; font-size: 15px; }
+.foot__contact a { display: flex; align-items: center; gap: 12px; }
+.foot__contact svg { width: 18px; height: 18px; flex: none; color: var(--or); }
 /* Signature bar under the wordmark: copyright left, studio credit right, one hairline above */
 .foot__bottom { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px 32px; padding-top: 22px; border-top: 1px solid var(--line);
   font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
@@ -358,6 +363,8 @@ main { position: relative; z-index: 1; }
 /* ---------- Tablet ---------- */
 @media (max-width: 1180px) {
   .nav__lang, .nav__links, .nav__icon:not(:first-child) { display: none; }
+  .nav .nav__icon--call { display: grid; background: var(--chair); color: var(--nuit); box-shadow: none; }
+  .nav__icon--call svg { animation: ring 2.6s ease-in-out infinite; }
   .drawer { grid-template-columns: 1fr 1fr; }
   .drawer__img { display: none; }
 }
@@ -405,7 +412,7 @@ main { position: relative; z-index: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .glow { animation: none; }
+  .glow, .nav__icon--call svg { animation: none; }
   .thread, .loader, .hx__words--edge { display: none; }
   .pause { height: auto; } .pause__sticky { position: relative; } .pause__frame { clip-path: none; } .pause__frame img { transform: none; }
   .about__p span { opacity: 1; }
@@ -435,6 +442,7 @@ main { position: relative; z-index: 1; }
   .cursor { display: none; }
   /* Touch: a swipe always lands on a card; no colour filter on card photos (Safari re-filters them while scrolling) */
   .rail__track { scroll-snap-type: x mandatory; }
+  .card { scroll-snap-stop: always; } /* a flick moves exactly one card */
   .card img { filter: none; transition: none; }
 }
 
@@ -490,8 +498,12 @@ main { position: relative; z-index: 1; }
   .mbar a:active { transform: scale(0.97); }
   .mbar .mbar__book { background: var(--chair); color: var(--nuit); }
   body { padding-bottom: 76px; }
-  .picks { gap: 6px; }
-  .pick span { font-size: 13px; }
+  .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .pick span { font-size: 18px; }
+  /* Teacher banner fills the gap between the FAQ and the SEO chapters */
+  .promo { display: block; position: relative; margin: 0 var(--pad); border-radius: 22px; overflow: hidden; }
+  .promo img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+  .promo .btn { position: absolute; left: 20px; right: 20px; bottom: 20px; justify-content: center; }
 }
 
 /* ---------- Girls as a pinned horizontal scene (desktop, set by main.js) ---------- */
