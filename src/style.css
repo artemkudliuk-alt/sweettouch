@@ -22,11 +22,11 @@
 
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; } /* the scrollbar coming back after the preloader must not reflow the page */
+html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; overflow-x: clip; overscroll-behavior-x: none; } /* the scrollbar coming back after the preloader must not reflow the page */
 body {
   margin: 0; background: var(--bg); color: var(--fg);
   font: 400 18px/1.6 var(--sans);
-  overflow-x: hidden; /* background/colour are scrubbed by main.js along the scroll (tone journey) */
+  overflow-x: clip; overscroll-behavior-x: none; /* no sideways drift on touch (clip, unlike hidden, is no scroll container); background/colour are scrubbed by main.js along the scroll (tone journey) */
 }
 body.is-loading { overflow: hidden; }
 img { display: block; max-width: 100%; }

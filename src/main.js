@@ -63,6 +63,10 @@ $$('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
 // Glass pill once off the top; always visible
 ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scroll() > 80) });
 
+// Always start at the top: the preloader replays on reload, and a restored scroll (Safari) made the hero fly by itself
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+scrollTo(0, 0);
+
 /* ---------- Hero ---------- */
 const hx = $("[data-hx]");
 const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
@@ -97,7 +101,8 @@ const flight = { x: 0, y: 0, s: 14 }; // zoom origin + final scale of the scroll
 /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
 const measure = document.createElement("canvas").getContext("2d");
 const layoutHero = () => {
-  const W = innerWidth, H = innerHeight;
+  // Layout viewport height: on iOS it is the small viewport and does not change while the browser bar slides
+  const W = innerWidth, H = document.documentElement.clientHeight || innerHeight;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   $$("rect, image, mask", svg).forEach((n) => { n.setAttribute("x", 0); n.setAttribute("y", 0); n.setAttribute("width", W); n.setAttribute("height", H); });
   const texts = $$("text", $(".hx__words--edge", svg)), last = texts[texts.length - 1].textContent, navH = W < 720 ? 66 : 96;
@@ -127,41 +132,29 @@ const layoutHero = () => {
   Object.assign(flight, { x: W / 2, y: H / 2, s: 14 });
   const t = texts.find((n) => n.textContent.includes("r"));
   if (!t) return;
-  // Fly-through target: the round ball terminal of the first "r". Render the glyph and take the fattest point of its
-  // right half (chamfer distance transform): that is the ball's centre and radius.
-  const c = measure.canvas, F = 400, N = 640, O = 80, B = 480;
-  c.width = c.height = N;
-  measure.font = `900 ${F}px "Bodoni Hero"`;
-  measure.fillText("r", O, B);
-  const m = measure.measureText("r"), mid = O + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
-  const a = measure.getImageData(0, 0, N, N).data, d = new Float32Array(N * N);
-  for (let i = 0; i < N * N; i++) d[i] = a[i * 4 + 3] > 128 ? 1e9 : 0;
-  const relax = (i, j, w) => { if (d[j] + w < d[i]) d[i] = d[j] + w; };
-  for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
-    const i = y * N + x;
-    relax(i, i - 1, 1); relax(i, i - N, 1); relax(i, i - N - 1, 1.414); relax(i, i - N + 1, 1.414);
-  }
-  let best = 0, bi = 0;
-  for (let y = N - 2; y > 0; y--) for (let x = N - 2; x > 0; x--) {
-    const i = y * N + x;
-    relax(i, i + 1, 1); relax(i, i + N, 1); relax(i, i + N + 1, 1.414); relax(i, i + N - 1, 1.414);
-    if (x > mid && d[i] > best) { best = d[i]; bi = i; }
-  }
-  const k = fs / F, box = t.getExtentOfChar(t.textContent.indexOf("r"));
-  const x = box.x + ((bi % N) - O) * k, y = +t.getAttribute("y") - (B - Math.floor(bi / N)) * k, r = best * k;
+  // Fly-through target: the round ball terminal of the first "r". Measured once on the hero face (static file, so the
+  // numbers never change): centre 0.43 em right of the glyph start and 0.333 em above the baseline, radius 0.105 em.
+  // Not measured at runtime: Safari adds fingerprinting noise to canvas readback, which broke the old pixel scan.
+  const box = t.getExtentOfChar(t.textContent.indexOf("r"));
+  const x = box.x + 0.43 * fs, y = +t.getAttribute("y") - 0.333 * fs, r = 0.105 * fs;
   // Scale at which the ball covers every corner of the screen
   const s = Math.max(...[[0, 0], [W, 0], [0, H], [W, H]].map(([px, py]) => Math.hypot(px - x, py - y))) / r;
+  if (!(s > 3 && Number.isFinite(s))) return; // implausible geometry: keep the centred default flight
   Object.assign(flight, { x, y, s: s * 1.1 });
 };
 layoutHero();
 const heroFont = document.fonts.load('900 100px "Bodoni Hero"').catch(() => {});
 heroFont.then(layoutHero); // metrics are exact only once the hero face is in
-addEventListener("resize", () => { layoutHero(); ScrollTrigger.refresh(); });
+// Phones fire "resize" whenever the browser bar slides in or out during a swipe: re-laying out the hero and every
+// trigger on that made the page jump. Only a real width change (rotation, desktop resize) re-lays out.
+ScrollTrigger.config({ ignoreMobileResize: true });
+let lastW = innerWidth;
+addEventListener("resize", () => { if (innerWidth === lastW && !fine) return; lastW = innerWidth; layoutHero(); ScrollTrigger.refresh(); });
 
 // Paint: glyphs (zoomed about the "r" ball) in white, then the video/poster drawn only where they are (source-in), then a
 // warm 10% lift. Once the ball covers the screen the frame is drawn whole. Pixel ratio capped at 2 (sharp, half the fill).
 const paintHero = () => {
-  const W = innerWidth, H = innerHeight, d = Math.min(devicePixelRatio || 1, 2);
+  const W = innerWidth, H = document.documentElement.clientHeight || innerHeight, d = Math.min(devicePixelRatio || 1, 2);
   if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
   ctx.setTransform(d, 0, 0, d, 0, 0);
   ctx.globalCompositeOperation = "source-over";
