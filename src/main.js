@@ -67,7 +67,7 @@ ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scrol
 const hx = $("[data-hx]");
 const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
 const after = $(".hx__after", hx), hint = $(".hx__hint", hx), ticker = $(".hx__ticker", hx);
-let heroIntro = () => {};
+let heroIntro = () => {}, startVid = () => {};
 // Hero video starts downloading now, while the preloader draws, and the preloader waits for it. Phones get a
 // light vertical cut (540x960) that fills a portrait screen; wider screens get the 1280x720 one.
 const vid = $(".hx__vid video", svg);
@@ -175,12 +175,12 @@ if (!reduce) {
 
   gsap.set(after.children, { autoAlpha: 0, y: 40 });
   const fly = { z: 0 };
-  // The video inside the masked letters is re-rasterised on every frame it plays, so it runs only while it is the
-  // picture: after the intro, at rest or fully landed, and while the hero is on screen. Mid-flight it holds still.
+  // The video plays the whole time the hero is on screen (also through the fly-in) and stops once it is scrolled
+  // away. It is started while the preloader still covers the page, so it is already running when the letters appear.
   let vidOn = false, heroOn = true;
   const syncVid = () => {
     if (!useVid) return;
-    const play = vidOn && heroOn && (fly.z < 0.02 || fly.z > 0.98);
+    const play = vidOn && heroOn;
     if (play && vid.paused) vid.play().catch(() => {});
     else if (!play && !vid.paused) vid.pause();
   };
@@ -188,8 +188,8 @@ if (!reduce) {
   const zoomTo = () => {
     const k = flight.s ** fly.z;
     gsap.set(groups, { scale: k, svgOrigin: `${flight.x} ${flight.y}` });
-    syncVid();
   };
+  startVid = () => { vidOn = true; syncVid(); };
   zoomTo();
   ScrollTrigger.addEventListener("refresh", zoomTo); // re-apply after resize re-layout
   // Scroll: the letters (mask) grow until they cover the screen, the full frame takes over, then the copy arrives
@@ -206,7 +206,7 @@ if (!reduce) {
   const edge = $(".hx__words--edge", svg), fill = $("g[mask]", svg), INK = "3000"; // > longest glyph outline in px
   gsap.set(edge, { strokeDasharray: `0 ${INK}` });
   gsap.set(fill, { clipPath: "inset(100% 0% 0% 0%)" });
-  heroIntro = () => gsap.timeline({ onStart: () => { vidOn = true; syncVid(); } })
+  heroIntro = () => gsap.timeline()
     .to(edge, { strokeDasharray: `${INK} 0`, duration: 2, ease: "power2.inOut" }, 0)
     .to(fill, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.6, ease: "expo.inOut" }, 1.1)
     .to(edge, { opacity: 0, duration: 1.2, ease: "power2.out" }, 2.6); // the gold line only draws the letters in; at rest they are clean photo shapes
@@ -221,6 +221,7 @@ if (reduce || !loader) {
   loader?.remove();
   prepLoad();
   finishLoad();
+  startVid();
 } else {
   // Every strand runs bottom -> top; a strand starts when the rising front reaches its lowest point and moves
   // at the same speed as the front, so the whole contour climbs up the figure evenly.
@@ -243,7 +244,7 @@ if (reduce || !loader) {
   });
   settled.then(() => gsap.timeline()
     .add(drawUp(2.6), 0)
-    .add(() => ready.then(prepLoad).then(() => gsap.timeline({ onComplete: () => loader.remove() })
+    .add(() => ready.then(() => { startVid(); prepLoad(); }).then(() => gsap.timeline({ onComplete: () => loader.remove() })
       // The figure's line flows on upward and off its own end (dash slides past), the backdrop dissolves into the
       // hero's same dark tone, and the hero letters pick the line up
       .to(".loader__line", { attr: { "stroke-dashoffset": -1 }, duration: 1.1, ease: "power2.in" })
@@ -474,7 +475,65 @@ if (stage && !reduce) {
 
 /* ---------- Booking: choices -> live summary, price and a prefilled WhatsApp message ---------- */
 const bookEl = $("[data-book]");
+// Massage picker: a styled listbox built from the native select's optgroups; choosing writes back to the select
+// and fires "change", so the booking logic below stays unaware of it
+const buildPicker = (sel) => {
+  const wrap = sel.parentElement, chevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const from = (o) => `from ${Math.min(...JSON.parse(o.dataset.prices).map((p) => +p[1]))} €`;
+  const btn = Object.assign(document.createElement("button"), { type: "button", className: "msel__btn" });
+  btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-label", "Massage");
+  btn.innerHTML = `<span></span><small></small>${chevron}`;
+  const list = Object.assign(document.createElement("div"), { className: "msel__list", hidden: true });
+  list.setAttribute("role", "listbox"); list.setAttribute("data-lenis-prevent", "");
+  $$("optgroup", sel).forEach((g) => {
+    const h = Object.assign(document.createElement("p"), { className: "msel__group", textContent: g.label });
+    list.append(h);
+    $$("option", g).forEach((o) => {
+      const b = Object.assign(document.createElement("button"), { type: "button", className: "msel__opt" });
+      b.setAttribute("role", "option"); b.dataset.value = o.value;
+      b.innerHTML = "<span></span><small></small>";
+      b.firstChild.textContent = o.value; b.lastChild.textContent = from(o);
+      list.append(b);
+    });
+  });
+  wrap.classList.add("is-custom"); wrap.append(btn, list);
+  const opts = $$(".msel__opt", list);
+  const paint = () => {
+    btn.firstChild.textContent = sel.value; btn.children[1].textContent = from(sel.selectedOptions[0]);
+    opts.forEach((b) => b.setAttribute("aria-selected", b.dataset.value === sel.value));
+  };
+  const open = (yes) => {
+    if (yes === !list.hidden) return;
+    btn.setAttribute("aria-expanded", yes);
+    if (yes) {
+      list.hidden = false;
+      const cur = opts.find((b) => b.dataset.value === sel.value);
+      list.scrollTop = cur.offsetTop - list.clientHeight / 2 + cur.offsetHeight / 2;
+      if (!reduce) gsap.fromTo(list, { opacity: 0, y: -10, clipPath: "inset(0% 0% 100% 0% round 22px)" },
+        { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0% round 22px)", duration: 0.55, ease: "expo.out" });
+      cur.focus({ preventScroll: true });
+    } else if (reduce) list.hidden = true;
+    else gsap.to(list, { opacity: 0, y: -6, duration: 0.25, ease: "power2.in", onComplete: () => { list.hidden = true; } });
+  };
+  btn.addEventListener("click", () => open(list.hidden));
+  list.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".msel__opt");
+    if (!b) return;
+    sel.value = b.dataset.value;
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    paint(); open(false); btn.focus();
+  });
+  list.addEventListener("keydown", (ev) => {
+    const i = opts.indexOf(document.activeElement);
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); opts[Math.max(0, Math.min(opts.length - 1, i + (ev.key === "ArrowDown" ? 1 : -1)))].focus(); }
+    if (ev.key === "Escape" || ev.key === "Tab") { open(false); if (ev.key === "Escape") btn.focus(); }
+  });
+  btn.addEventListener("keydown", (ev) => { if (ev.key === "ArrowDown") { ev.preventDefault(); open(true); } });
+  document.addEventListener("pointerdown", (ev) => { if (!wrap.contains(ev.target)) open(false); });
+  paint();
+};
 if (bookEl) {
+  buildPicker($("select", bookEl));
   const sel = $("select", bookEl), durs = $("[data-durs]", bookEl), wa = $("[data-wa]", bookEl), photo = $("[data-book-photo]", bookEl);
   const sum = (k, v) => { $(`[data-sum="${k}"]`, bookEl).textContent = v; };
   const fillDurs = () => {

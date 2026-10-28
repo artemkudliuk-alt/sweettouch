@@ -421,7 +421,7 @@ main { position: relative; z-index: 1; }
 .book__step { border: 0; padding: 0; margin: 0 0 clamp(32px, 4vw, 48px); min-width: 0; }
 .book__step legend { display: flex; align-items: baseline; gap: 14px; padding: 0; margin-bottom: 18px; font: italic 400 clamp(24px, 2.2vw, 32px)/1 var(--serif); }
 .book__step legend span { font: 500 12px/1 var(--sans); letter-spacing: 0.14em; color: var(--or); }
-.picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-width: 640px; }
+.picks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
 .pick { position: relative; display: grid; gap: 8px; cursor: pointer; }
 .pick input, .dur input { position: absolute; opacity: 0; pointer-events: none; }
 .pick img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 12px; filter: saturate(0.6) brightness(0.62); transition: filter 0.5s var(--ease), outline-color 0.3s; outline: 1px solid transparent; outline-offset: 3px; }
@@ -466,7 +466,8 @@ main { position: relative; z-index: 1; }
   .mbar a:active { transform: scale(0.97); }
   .mbar .mbar__book { background: var(--chair); color: var(--nuit); }
   body { padding-bottom: 76px; }
-  .picks { gap: 10px; }
+  .picks { gap: 6px; }
+  .pick span { font-size: 13px; }
 }
 
 /* ---------- Girls as a pinned horizontal scene (desktop, set by main.js) ---------- */
@@ -480,3 +481,25 @@ main { position: relative; z-index: 1; }
 .girls.is-pinned .card__title { font-size: clamp(28px, 2.6vw, 40px); }
 .girls.is-pinned .girls__progress { display: block; height: 1px; margin-top: 28px; background: var(--line); }
 .girls__progress span { display: block; height: 100%; background: var(--or); transform-origin: 0 50%; transform: scaleX(0); }
+
+/* ---------- Massage picker: custom listbox over the native select (the select stays the source of truth) ---------- */
+.book__select.is-custom select { display: none; }
+.book__select.is-custom::after { display: none; }
+.msel__btn { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 10px 4px 14px 0; border: 0;
+  border-bottom: 1px solid var(--line); background: none; color: inherit; cursor: pointer; text-align: left; font: italic 400 clamp(26px, 2.6vw, 38px)/1.1 var(--serif); }
+.msel__btn small { margin-left: auto; font: 500 13px/1 var(--sans); letter-spacing: 0.04em; color: var(--or); white-space: nowrap; }
+.msel__btn svg { width: 22px; height: 22px; flex: none; color: var(--or); transition: transform 0.5s var(--ease); }
+.msel__btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.msel__btn:hover, .msel__btn[aria-expanded="true"] { border-bottom-color: var(--or); }
+.msel__btn:focus-visible { outline: 2px solid var(--bougie); outline-offset: 4px; }
+.msel__list { position: absolute; left: 0; right: 0; top: calc(100% + 10px); z-index: 6; max-height: min(440px, 60svh); overflow-y: auto; overscroll-behavior: contain;
+  padding: 8px; border-radius: 22px; background: rgb(22 5 8 / 0.9); backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3), 0 30px 80px -20px rgb(0 0 0 / 0.75); scrollbar-width: thin; scrollbar-color: rgb(184 146 90 / 0.4) transparent; }
+.msel__group { padding: 16px 14px 8px; font: 500 11px/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--or); }
+.msel__opt { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; width: 100%; padding: 11px 14px; border: 0; border-radius: 12px;
+  background: none; color: inherit; cursor: pointer; text-align: left; transition: background-color 0.25s, color 0.25s; }
+.msel__opt span { font: italic 400 20px/1.15 var(--serif); }
+.msel__opt small { font: 400 13px/1 var(--sans); opacity: 0.55; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.msel__opt:hover, .msel__opt:focus-visible { background: rgb(234 215 197 / 0.07); outline: none; }
+.msel__opt[aria-selected="true"] { color: var(--bougie); }
+.msel__opt[aria-selected="true"] small { opacity: 0.9; color: var(--bougie); }
