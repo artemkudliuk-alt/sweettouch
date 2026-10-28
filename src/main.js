@@ -53,13 +53,20 @@ if (!reduce) {
   // stalls, and without smoothing the line drawing would jump ahead instead of continuing
   lenis.stop(); // released by the preloader
 }
-$$('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
-  const target = $(a.getAttribute("href"));
+// In-page anchors, including "index.html#girls" while already on "/": scroll here instead of reloading the page
+// (a reload replayed the preloader and locked the scroll meanwhile)
+const page = (path) => path.replace(/\/index\.html$/, "/");
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[href*='#']");
+  if (!a) return;
+  const u = new URL(a.href, location.href);
+  if (!u.hash || u.origin !== location.origin || page(u.pathname) !== page(location.pathname)) return;
+  const target = document.getElementById(decodeURIComponent(u.hash.slice(1)));
   if (!target) return;
   e.preventDefault();
   setDrawer(false);
   lenis ? lenis.scrollTo(target, { duration: 1.4 }) : target.scrollIntoView();
-}));
+});
 
 // Language switcher (<details>): closes on a click elsewhere or Escape
 const langSw = $("[data-lang]");
@@ -295,7 +302,7 @@ const loader = $("[data-loader]");
 // Heavy work (trigger re-measure) runs while the drawing still covers the screen; the hand-off itself only flips flags
 const prepLoad = () => ScrollTrigger.refresh();
 const finishLoad = () => { document.body.classList.remove("is-loading"); gsap.ticker.lagSmoothing(0); lenis?.start(); };
-if (reduce || !loader) {
+if (reduce || !loader || document.hidden) { // opened in a background tab: frames are throttled, nobody sees the drawing
   loader?.remove();
   prepLoad();
   finishLoad();
