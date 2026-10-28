@@ -280,9 +280,9 @@ def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
     <svg class="hx__svg" data-fs="{fs[0]}" data-fs-m="{fs[1]}" aria-hidden="true">
       <defs><mask id="hx-mask" maskUnits="userSpaceOnUse">
         <rect class="hx__mbg" fill="#000"/><rect class="hx__mfull" fill="#fff" opacity="0"/>
-        <g class="hx__words hx__words--mask" fill="#fff">{texts}</g>
+        <g class="hx__words hx__words--mask" fill="#fff" stroke="#fff" stroke-linejoin="round">{texts}</g>
       </mask></defs>
-      <g mask="url(#hx-mask)">{images}{vid}</g>
+      <g mask="url(#hx-mask)">{images}{vid}<rect class="hx__lift" fill="#f2b35e" opacity="0.1"/></g>
       <g class="hx__words hx__words--edge" fill="none">{texts}</g>
     </svg>
     <div class="hx__shade" aria-hidden="true"></div>

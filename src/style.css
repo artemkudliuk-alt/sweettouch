@@ -394,7 +394,7 @@ main { position: relative; z-index: 1; }
 /* ---------- v3: marquee, cursor, footer mark ---------- */
 .marquee { padding: clamp(24px, 3.5vw, 56px) 0; overflow: hidden; display: grid; gap: 0.5vw; }
 .marquee__row { overflow: hidden; }
-.marquee__track { display: flex; align-items: center; gap: 3vw; width: max-content; font: italic 400 clamp(56px, 11vw, 180px)/1 var(--serif); letter-spacing: -0.03em; white-space: nowrap; will-change: transform; }
+.marquee__track { display: flex; align-items: center; gap: 3vw; width: max-content; font: italic 400 clamp(56px, 11vw, 180px)/1 var(--serif); letter-spacing: -0.03em; white-space: nowrap; }
 .marquee__row--line .marquee__track { color: transparent; -webkit-text-stroke: 1.4px var(--bougie); }
 .marquee__dot { width: 0.22em; height: 0.22em; fill: var(--or); flex: none; }
 

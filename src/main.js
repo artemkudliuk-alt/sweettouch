@@ -108,6 +108,9 @@ const layoutHero = () => {
     t.setAttribute("y", first + i * lh);
     t.setAttribute("font-size", fs);
   }));
+  // Bodoni's hairlines are 1-2 px at this size and vanish over dark video frames; a thin same-colour stroke on the
+  // mask text (scales with the zoom, keeps the letterforms) gives every serif and diagonal enough photo to read
+  $(".hx__words--mask", svg).setAttribute("stroke-width", (fs * 0.014).toFixed(2));
   hx.style.setProperty("--tick-top", `${first + (texts.length - 1) * lh + desc + 14}px`);
   Object.assign(flight, { x: W / 2, y: H / 2, s: 14 });
   const t = texts.find((n) => n.textContent.includes("r"));
@@ -369,8 +372,9 @@ if (!reduce) {
   // Marquee: two rows drift slowly in opposite ways; scrolling nudges them a little, then they settle back
   $$("[data-marquee]").forEach((m) => {
     const rows = $$(".marquee__track", m).map((t, i) =>
-      gsap.fromTo(t, { xPercent: i ? -50 : 0 }, { xPercent: i ? 0 : -50, duration: 240, ease: "none", repeat: -1 }));
-    ScrollTrigger.create({ trigger: m, start: "top bottom", end: "bottom top", onUpdate: (s) => {
+      gsap.fromTo(t, { xPercent: i ? -50 : 0 }, { xPercent: i ? 0 : -50, duration: 240, ease: "none", repeat: -1, paused: true }));
+    // Only runs while on screen: the tracks are tens of thousands of px wide, raster work for nothing when hidden
+    ScrollTrigger.create({ trigger: m, start: "top bottom", end: "bottom top", onToggle: (s) => rows.forEach((r) => (s.isActive ? r.play() : r.pause())), onUpdate: (s) => {
       const dir = s.direction || 1, boost = 1 + Math.min(Math.abs(s.getVelocity()) / 1500, 1);
       rows.forEach((r) => gsap.to(r, { timeScale: boost * dir, duration: 0.6, overwrite: true,
         onComplete: () => gsap.to(r, { timeScale: dir, duration: 1.6, ease: "power2.out" }) }));
