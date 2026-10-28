@@ -95,6 +95,23 @@ main { position: relative; z-index: 1; }
 .nav__menu[aria-expanded="true"] .burger i:first-child { top: 5px; transform: rotate(45deg); }
 .nav__menu[aria-expanded="true"] .burger i:last-child { top: 5px; width: 100%; transform: rotate(-45deg); }
 .nav__lang { display: flex; gap: 12px; font-size: 13px; }
+.nav__links { display: flex; gap: 22px; font-size: 14px; }
+.nav__links a { opacity: 0.78; transition: opacity 0.24s; white-space: nowrap; }
+.nav__links a:hover { opacity: 1; }
+/* Compact language switcher: flag + code, the other languages drop down (as on mandra.nextweb.ua) */
+.lang { position: relative; margin-right: 6px; }
+.lang summary { list-style: none; display: flex; align-items: center; gap: 7px; height: 44px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  font: 500 13px/1 var(--sans); box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.22); transition: box-shadow 0.24s; }
+.lang summary::-webkit-details-marker { display: none; }
+.lang summary:hover, .lang[open] summary { box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.5); }
+.lang summary:focus-visible { outline: 2px solid var(--bougie); outline-offset: 3px; }
+.lang svg:not(.lang__chev) { width: 20px; height: 14px; border-radius: 2px; flex: none; }
+.lang__chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; opacity: 0.6; transition: transform 0.3s var(--ease); }
+.lang[open] .lang__chev { transform: rotate(180deg); }
+.lang__menu { position: absolute; right: 0; top: calc(100% + 8px); display: grid; gap: 2px; min-width: 112px; padding: 6px; border-radius: 16px;
+  background: rgb(22 5 8 / 0.92); backdrop-filter: blur(18px); box-shadow: 0 20px 50px -18px rgb(0 0 0 / 0.7); }
+.lang__menu a { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 10px; font: 500 13px/1 var(--sans); }
+.lang__menu a:hover, .lang__menu a:focus-visible { background: rgb(234 215 197 / 0.08); outline: none; }
 .nav__lang a { opacity: 0.5; transition: opacity 0.24s; } .nav__lang a:hover, .nav__lang [aria-current] { opacity: 1; }
 .nav__icon {
   width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
@@ -339,7 +356,7 @@ main { position: relative; z-index: 1; }
 
 /* ---------- Tablet ---------- */
 @media (max-width: 1180px) {
-  .nav__lang, .nav__icon:not(:first-child) { display: none; }
+  .nav__lang, .nav__links, .nav__icon:not(:first-child) { display: none; }
   .drawer { grid-template-columns: 1fr 1fr; }
   .drawer__img { display: none; }
 }
@@ -347,6 +364,7 @@ main { position: relative; z-index: 1; }
 /* ---------- Mobile ---------- */
 @media (max-width: 720px) {
   .nav { inset: 10px 10px auto; height: 56px; padding: 0 8px 0 14px; grid-template-columns: auto 1fr auto; }
+  .nav .lang { display: none; } /* phones: languages live in the menu drawer */
   .nav__logo { font-size: 26px; text-align: center; }
   .nav__menu-label, .btn--sm { display: none; }
   .drawer { grid-template-columns: 1fr; padding-top: 96px; align-content: start; }
@@ -507,3 +525,11 @@ main { position: relative; z-index: 1; }
 .msel__opt:hover, .msel__opt:focus-visible { background: rgb(234 215 197 / 0.07); outline: none; }
 .msel__opt[aria-selected="true"] { color: var(--bougie); }
 .msel__opt[aria-selected="true"] small { opacity: 0.9; color: var(--bougie); }
+
+/* ---------- SEO copy near the footer: compact, folded behind "Show all" (text stays 1:1 for the SEO team) ---------- */
+.seo .chapter__title { font-size: clamp(20px, 1.8vw, 26px); }
+.seo .chapter summary { padding-block: 22px; }
+/* fade by mask, not a coloured overlay: the page background tone shifts with the scroll */
+.seo__body { max-height: 300px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent); }
+.seo.is-open .seo__body { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.seo__toggle { margin-top: 20px; border: 0; background: none; cursor: pointer; }

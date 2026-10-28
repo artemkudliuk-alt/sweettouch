@@ -139,7 +139,7 @@ def article(block, images):
             h, body = sec
             img = images.get(h)
             fig = f'<figure class="chapter__img"><img src="img/m-{img}.webp" alt="" loading="lazy"></figure>' if img else ""
-            out.append(f'<details class="chapter"{"" if out else " open"}><summary><h2 class="chapter__title">{e(h)}</h2><span class="chapter__toggle" aria-hidden="true"></span></summary>'
+            out.append(f'<details class="chapter"><summary><h2 class="chapter__title">{e(h)}</h2><span class="chapter__toggle" aria-hidden="true"></span></summary>'
                        f'<div class="chapter__grid">{fig}<div class="chapter__body">{"".join(body)}</div></div></details>')
 
     for l in block:
@@ -181,6 +181,20 @@ MAIN = [("Our masseuses", "https://sweettouch.fr/girl", "katlin"), ("Massages & 
         ("Paris locations", "https://sweettouch.fr/paris-locations", "m-overnight"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "m-sexy-guide"),
         ("Job offers", "https://sweettouch.fr/job-offers", "m-six-hands"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "m-date")]
 LANGS = '<a aria-current="true">English</a><a href="https://sweettouch.fr/fr/">Français</a><a href="https://sweettouch.fr/ru/">Русский</a>'
+FLAG = {  # small rectangular flags for the compact language switcher (as on mandra.nextweb.ua)
+    "EN": '<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#012169"/><path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="12"/><path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="7"/></svg>',
+    "FR": '<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="20" height="40" fill="#0055A4"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#EF4135"/></svg>',
+    "RU": '<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="14" fill="#fff"/><rect y="13" width="60" height="14" fill="#0039A6"/><rect y="26" width="60" height="14" fill="#D52B1E"/></svg>',
+}
+# Header shortcuts: the three things a visitor looks for first; everything else lives in the burger
+TOP = [("Masseuses", "index.html#girls"), ("Massages & prices", "index.html#massages"), ("Locations", "https://sweettouch.fr/paris-locations")]
+
+
+def lang_switch():
+    others = "".join(f'<a href="https://sweettouch.fr/{c.lower()}/" lang="{c.lower()}">{FLAG[c]}<span>{c}</span></a>' for c in ("FR", "RU"))
+    return (f'<details class="lang" data-lang><summary aria-label="Language: English">{FLAG["EN"]}<span>EN</span>'
+            '<svg class="lang__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>'
+            f'<div class="lang__menu">{others}</div></details>')
 
 
 def icon(name):
@@ -194,10 +208,11 @@ def nav():
     return f'''<header class="nav" data-nav>
   <div class="nav__left">
     <button class="nav__menu" data-burger aria-expanded="false" aria-controls="drawer"><span class="burger" aria-hidden="true"><i></i><i></i></span><span class="nav__menu-label">Menu</span></button>
-    <span class="nav__lang">{LANGS}</span>
+    <nav class="nav__links" aria-label="Shortcuts">{"".join(f'<a href="{u}">{e(t)}</a>' for t, u in TOP)}</nav>
   </div>
   <a class="nav__logo" href="index.html">SweetTouch</a>
   <div class="nav__right">
+    {lang_switch()}
     <a class="nav__icon" href="tel:+33758963765" aria-label="+33 7 58 96 37 65" title="+33 7 58 96 37 65">{icon("phone")}</a>
     <a class="nav__icon" href="https://wa.me/%2B33758963765" aria-label="Call by Whatsapp" title="Call by Whatsapp">{icon("chat")}</a>
     <a class="nav__icon" href="https://t.me/sweettouchfr" aria-label="Send to Telegram" title="Send to Telegram">{icon("send")}</a>
@@ -421,10 +436,6 @@ def build_home():
   </div>
 </section>
 
-<section class="sect articles" data-tone="wine">
-{article(art, {"What Is SweetTouch Erotic Massage? A Journey Beyond Relaxation": "sensual", "Our Exclusive Erotic Massage Services in Paris": "couple",
-               "Discover Our Special, One-of-a-Kind Offers!": "strawberry", "Meet Our Masseuses: The Heart of SweetTouch": "six-hands"})}
-</section>
 
 <section class="sect how" data-tone="noir">
   <h2 class="h2">How it works</h2>
@@ -442,6 +453,14 @@ def build_home():
 <section class="sect faq" data-tone="noir">
   <h2 class="h2">FAQ</h2>
   <div class="faq__list">{faq(fq)}</div>
+</section>
+<!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
+<section class="sect articles seo" data-tone="wine" data-seo>
+<div class="seo__body">
+{article(art, {"What Is SweetTouch Erotic Massage? A Journey Beyond Relaxation": "sensual", "Our Exclusive Erotic Massage Services in Paris": "couple",
+               "Discover Our Special, One-of-a-Kind Offers!": "strawberry", "Meet Our Masseuses: The Heart of SweetTouch": "six-hands"})}
+</div>
+<button class="more seo__toggle" type="button" data-seo-toggle aria-expanded="false">Show all</button>
 </section>
 {footer(copy)}'''
     return page(L[0], intro[:155], body)

@@ -60,6 +60,13 @@ $$('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
   lenis ? lenis.scrollTo(target) : target.scrollIntoView();
 }));
 
+// Language switcher (<details>): closes on a click elsewhere or Escape
+const langSw = $("[data-lang]");
+if (langSw) {
+  document.addEventListener("pointerdown", (ev) => { if (langSw.open && !langSw.contains(ev.target)) langSw.open = false; });
+  langSw.addEventListener("keydown", (ev) => { if (ev.key === "Escape") { langSw.open = false; $("summary", langSw).focus(); } });
+}
+
 // Glass pill once off the top; always visible
 ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scroll() > 80) });
 
@@ -372,6 +379,16 @@ buildTones();
 ScrollTrigger.create({ start: 0, end: () => ScrollTrigger.maxScroll(window), animation: toneTl, scrub: reduce ? true : 0.8 });
 ScrollTrigger.addEventListener("refreshInit", buildTones); // layout changed (resize, accordion, fonts): re-place transitions
 $$("details").forEach((d) => d.addEventListener("toggle", () => ScrollTrigger.refresh()));
+// SEO block: folded to a short preview; "Show all" opens the full list of chapters
+$$("[data-seo]").forEach((seo) => {
+  const btn = $("[data-seo-toggle]", seo);
+  btn.addEventListener("click", () => {
+    const open = seo.classList.toggle("is-open");
+    btn.setAttribute("aria-expanded", open);
+    btn.textContent = open ? "Show less" : "Show all";
+    ScrollTrigger.refresh();
+  });
+});
 // Accordions open and close as a smooth height tween instead of the native jump
 if (!reduce) $$("details.faq__item, details.chapter").forEach((d) => {
   const body = d.querySelector(":scope > :not(summary)");
