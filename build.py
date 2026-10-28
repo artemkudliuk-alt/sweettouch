@@ -109,7 +109,7 @@ def book(names, rows):
       <fieldset class="book__step"><legend><span>03</span>Duration</legend><div class="durs" data-durs></div></fieldset>
     </div>
     <aside class="book__card">
-      <figure class="book__photo"><img data-book-photo src="img/{names[0].lower()}.webp" alt="" loading="lazy" decoding="async"></figure>
+      <figure class="book__photo"><img data-book-photo src="img/{names[0].lower()}.webp" alt="" sizes="(max-width: 720px) 86vw, 460px" loading="lazy" decoding="async"></figure>
       <dl class="book__sum">
         <div><dt>Masseuse</dt><dd data-sum="girl"></dd></div>
         <div><dt>Massage</dt><dd data-sum="massage"></dd></div>
@@ -138,7 +138,7 @@ def article(block, images):
         if sec:
             h, body = sec
             img = images.get(h)
-            fig = f'<figure class="chapter__img"><img src="img/m-{img}.webp" alt="" loading="lazy"></figure>' if img else ""
+            fig = f'<figure class="chapter__img"><img src="img/m-{img}.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>' if img else ""
             out.append(f'<details class="chapter"><summary><h2 class="chapter__title">{e(h)}</h2><span class="chapter__toggle" aria-hidden="true"></span></summary>'
                        f'<div class="chapter__grid">{fig}<div class="chapter__body">{"".join(body)}</div></div></details>')
 
@@ -320,7 +320,8 @@ def responsive(html_):
             tag = tag.replace("<img ", '<img decoding="async" ', 1)
         if small.exists() and "srcset=" not in tag:
             w = _I.open(ROOT / "public" / "img" / f"{name}.webp").width
-            tag = tag.replace(f'src="img/{name}.webp"', f'src="img/{name}.webp" srcset="img/{name}-800.webp 800w, img/{name}.webp {w}w" sizes="(max-width: 720px) 72vw, 380px"', 1)
+            sizes = "" if "sizes=" in tag else ' sizes="(max-width: 720px) 72vw, 380px"'
+            tag = tag.replace(f'src="img/{name}.webp"', f'src="img/{name}.webp" srcset="img/{name}-800.webp 800w, img/{name}.webp {w}w"{sizes}', 1)
         return tag
     return re.sub(r'<img [^>]*?src="img/([\w-]+)\.webp"[^>]*>', sub, html_)
 
@@ -399,7 +400,7 @@ def build_home():
 
 <section class="sect about" data-tone="wine">
   <div class="about__text"><h2 class="h2">About SweetTouch</h2><p class="about__p" data-highlight>{e(about)}</p></div>
-  <figure class="about__img" data-parallax><img src="img/m-about.webp" alt="" loading="lazy"></figure>
+  <figure class="about__img" data-parallax><img src="img/m-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
 </section>
 
 <section class="sect girls" id="girls" data-tone="noir" data-girls>
@@ -412,13 +413,13 @@ def build_home():
 
 <section class="pause" data-pause data-tone="noir" aria-label="SweetTouch">
   <div class="pause__sticky">
-    <figure class="pause__frame"><img src="img/hero-2.webp" alt="" loading="lazy"></figure>
+    <figure class="pause__frame"><picture><source media="(max-width: 720px)" srcset="img/hero-2-m.webp"><img src="img/hero-2.webp" alt="" loading="lazy"></picture></figure>
     <p class="pause__line">Relive the unique experience of sensual intimate massage with SweetTouch!</p>
   </div>
 </section>
 
 <section class="sect split split--overlap" data-tone="wine">
-  <figure class="split__img" data-parallax><img src="img/m-outcall.webp" alt="" loading="lazy"></figure>
+  <figure class="split__img" data-parallax><img src="img/m-outcall.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
   <div class="split__copy"><h2 class="h2">{e(inc_h)}</h2><p>{e(inc_p)}</p></div>
 </section>
 

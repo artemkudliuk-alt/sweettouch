@@ -194,6 +194,7 @@ main { position: relative; z-index: 1; }
 .pause { height: 220vh; position: relative; }
 .pause__sticky { position: sticky; top: 0; height: 100svh; display: grid; place-items: center; overflow: hidden; }
 .pause__frame { position: absolute; inset: 0; clip-path: inset(24% 34% 24% 34%); }
+.pause__frame picture { display: contents; }
 .pause__frame img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.25); }
 .pause__frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgb(12 3 5 / 0.15), rgb(12 3 5 / 0.55)); }
 .pause__line { position: relative; z-index: 2; max-width: 22ch; text-align: center; padding: 0 var(--pad);
@@ -387,6 +388,7 @@ main { position: relative; z-index: 1; }
   .card { width: 76vw; }
   .card figure { height: 100vw; }
   .card--b { width: 64vw; }
+  .card--b figure { height: auto; } /* keeps the 4:3 frame; 100vw above is for portrait cards */
   .tabs { flex-wrap: nowrap; overflow-x: auto; margin-right: calc(-1 * var(--pad)); padding-right: var(--pad); scrollbar-width: none; }
   .tabs button { flex: none; }
   .steps { grid-template-columns: 1fr; }

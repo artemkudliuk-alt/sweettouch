@@ -45,7 +45,8 @@ $$(".drawer__big", drawer).forEach((a) => a.addEventListener("pointerenter", () 
 
 /* Smooth scroll */
 if (!reduce) {
-  lenis = new Lenis();
+  // Heavier, longer glide after the wheel (as on mandra.nextweb.ua); touch keeps the native inertia
+  lenis = new Lenis({ lerp: 0.07, wheelMultiplier: 0.9, smoothWheel: true });
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   // lagSmoothing(0) (needed for Lenis sync) is switched on after the preloader: during page load the main thread
@@ -57,7 +58,7 @@ $$('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
   if (!target) return;
   e.preventDefault();
   setDrawer(false);
-  lenis ? lenis.scrollTo(target) : target.scrollIntoView();
+  lenis ? lenis.scrollTo(target, { duration: 1.4 }) : target.scrollIntoView();
 }));
 
 // Language switcher (<details>): closes on a click elsewhere or Escape
@@ -664,7 +665,8 @@ if (bookEl) {
   bookEl.addEventListener("change", (ev) => {
     if (ev.target === sel) fillDurs();
     if (ev.target.name === "girl") {
-      photo.src = `img/${ev.target.value.toLowerCase()}.webp`;
+      const n = ev.target.value.toLowerCase();
+      photo.srcset = `img/${n}-800.webp 800w, img/${n}.webp 1200w`; photo.src = `img/${n}.webp`;
       if (!reduce) gsap.fromTo(photo, { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.8, ease: "expo.out" });
     }
     update(true);
