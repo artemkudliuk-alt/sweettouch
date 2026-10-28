@@ -411,7 +411,12 @@ main { position: relative; z-index: 1; }
 .cursor.is-big { width: 88px; height: 88px; margin: -44px 0 0 -44px; background: rgb(184 146 90 / 0.92); border-color: transparent; }
 .cursor__label { font: 500 13px/1 var(--sans); color: var(--nuit); opacity: 0; transition: opacity 0.3s; }
 .cursor.is-big .cursor__label { opacity: 1; }
-@media (pointer: coarse) { .cursor { display: none; } }
+@media (pointer: coarse) {
+  .cursor { display: none; }
+  /* Touch: a swipe always lands on a card; no colour filter on card photos (Safari re-filters them while scrolling) */
+  .rail__track { scroll-snap-type: x mandatory; }
+  .card img { filter: none; transition: none; }
+}
 
 
 /* ---------- Booking: three choices on the left, a live summary card on the right ---------- */

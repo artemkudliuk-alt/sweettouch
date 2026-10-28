@@ -128,6 +128,7 @@ const layoutHero = () => {
   // Canvas letters sit exactly where the SVG laid them out (per-glyph positions carry kerning and letter-spacing)
   hero.fs = fs;
   hero.glyphs = texts.flatMap((t) => [...t.textContent].map((ch, i) => { const p = t.getStartPositionOfChar(i); return [ch, p.x, p.y]; }));
+  if (hero.mask) hero.mask.key = ""; // glyphs moved: rebuild the mask
   hero.dirty = true;
   Object.assign(flight, { x: W / 2, y: H / 2, s: 14 });
   const t = texts.find((n) => n.textContent.includes("r"));
@@ -153,6 +154,22 @@ addEventListener("resize", () => { if (innerWidth === lastW && !fine) return; la
 
 // Paint: glyphs (zoomed about the "r" ball) in white, then the video/poster drawn only where they are (source-in), then a
 // warm 10% lift. Once the ball covers the screen the frame is drawn whole. Pixel ratio capped at 2 (sharp, half the fill).
+// The zoomed word as a white mask on its own canvas (same pixel size as the hero canvas)
+const paintMask = (m, W, H, d) => {
+  const key = `${hero.k}|${hero.fs}|${hero.glyphs.length}|${cv.width}x${cv.height}`;
+  if (m.key === key) return; // unchanged since the last frame: video frames reuse the same mask
+  m.key = key;
+  if (m.width !== cv.width || m.height !== cv.height) { m.width = cv.width; m.height = cv.height; }
+  const c = m.getContext("2d");
+  c.setTransform(d, 0, 0, d, 0, 0);
+  c.clearRect(0, 0, W, H);
+  c.translate(flight.x, flight.y); c.scale(hero.k, hero.k); c.translate(-flight.x, -flight.y);
+  c.font = `900 ${hero.fs}px "Bodoni Hero"`;
+  c.fillStyle = c.strokeStyle = "#fff";
+  c.lineWidth = hero.fs * 0.014; // Bodoni hairlines are 1-2 px: a thin stroke keeps every serif readable over dark frames
+  c.lineJoin = "round";
+  for (const [ch, x, y] of hero.glyphs) { c.fillText(ch, x, y); c.strokeText(ch, x, y); }
+};
 const paintHero = () => {
   const W = innerWidth, H = document.documentElement.clientHeight || innerHeight, d = Math.min(devicePixelRatio || 1, 2);
   if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
@@ -161,19 +178,21 @@ const paintHero = () => {
   ctx.clearRect(0, 0, W, H);
   const src = useVid && vid.readyState >= 2 ? vid : poster.naturalWidth ? poster : null;
   if (!src || !hero.fs) return;
-  if (hero.k < flight.s / 1.1) {
-    ctx.save();
-    ctx.translate(flight.x, flight.y); ctx.scale(hero.k, hero.k); ctx.translate(-flight.x, -flight.y);
-    ctx.font = `900 ${hero.fs}px "Bodoni Hero"`;
-    ctx.fillStyle = ctx.strokeStyle = "#fff";
-    ctx.lineWidth = hero.fs * 0.014; // Bodoni hairlines are 1-2 px: a thin stroke keeps every serif readable over dark frames
-    ctx.lineJoin = "round";
-    for (const [ch, x, y] of hero.glyphs) { ctx.fillText(ch, x, y); ctx.strokeText(ch, x, y); }
-    ctx.restore();
-    ctx.globalCompositeOperation = "source-in";
-  }
+  // Frame first with plain source-over, then cut it to the glyphs (destination-in). The composite op is applied to the
+  // text, never to the video: iOS Safari ignores composite modes when drawing <video> frames, which showed the bare clip.
   const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight, sc = Math.max(W / sw, H / sh);
   ctx.drawImage(src, (W - sw * sc) / 2, (H - sh * sc) / 2, sw * sc, sh * sc);
+  if (hero.k < flight.s / 1.1) {
+    // destination-in per glyph would erase the earlier glyphs, so the whole word is one mask canvas applied once
+    const mask = hero.mask || (hero.mask = document.createElement("canvas"));
+    paintMask(mask, W, H, d);
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(mask, 0, 0);
+    ctx.restore();
+  }
+  ctx.setTransform(d, 0, 0, d, 0, 0);
   ctx.globalCompositeOperation = "source-atop";
   ctx.fillStyle = "rgba(242, 179, 94, 0.1)";
   ctx.fillRect(0, 0, W, H);
@@ -520,19 +539,24 @@ if (stage && !reduce) {
   });
   const STEP = 1.5;
   const tl = gsap.timeline({
-    scrollTrigger: { trigger: stage, start: "top top", end: "bottom bottom", scrub: 0.6 },
+    // Each slide is a resting point: after a swipe the scroll settles on the nearest one instead of stopping mid-wipe
+    scrollTrigger: { trigger: stage, start: "top top", end: "bottom bottom", scrub: 0.6,
+      snap: { snapTo: "labels", duration: { min: 0.3, max: 0.8 }, delay: 0.06, ease: "power2.inOut", inertia: false } },
     onUpdate() {
       const p = this.progress() * segs.length;
       segs.forEach((s, i) => s.style.setProperty("--p", gsap.utils.clamp(0, 1, p - i)));
     },
   });
+  tl.addLabel("s0", 0);
   layers.slice(1).forEach((layer, k) => {
     const at = k * STEP + 0.3;
+    tl.addLabel(`s${k + 1}`, at + 1.35); // columns (1 s + stagger) and the next text are fully in
     tl.to($$(".col", layer), { clipPath: (j, el) => el.dataset.to, duration: 1, ease: "power2.inOut", stagger: { each: 0.06, from: "edges" } }, at)
       .to(texts[k], { autoAlpha: 0, y: -24, duration: 0.3 }, at)
       .fromTo(texts[k + 1], { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.4 }, at + 0.45);
   });
   tl.to({}, { duration: 0.4 });
+  tl.addLabel("end");
 } else if (stage) {
   stage.classList.add("is-static");
 }

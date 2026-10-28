@@ -294,7 +294,24 @@ def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
 </section>'''
 
 
+def responsive(html_):
+    """Every <img> with an 800px copy gets a srcset (phones pick the light one for cards) and async decoding."""
+    from PIL import Image as _I
+
+    def sub(m):
+        tag, name = m.group(0), m.group(1)
+        small = ROOT / "public" / "img" / f"{name}-800.webp"
+        if "decoding=" not in tag:
+            tag = tag.replace("<img ", '<img decoding="async" ', 1)
+        if small.exists() and "srcset=" not in tag:
+            w = _I.open(ROOT / "public" / "img" / f"{name}.webp").width
+            tag = tag.replace(f'src="img/{name}.webp"', f'src="img/{name}.webp" srcset="img/{name}-800.webp 800w, img/{name}.webp {w}w" sizes="(max-width: 720px) 72vw, 380px"', 1)
+        return tag
+    return re.sub(r'<img [^>]*?src="img/([\w-]+)\.webp"[^>]*>', sub, html_)
+
+
 def page(title, desc, body):
+    body = responsive(body)
     return f'''<!doctype html>
 <html lang="en">
 <head>
