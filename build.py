@@ -252,7 +252,7 @@ def marquee(names):
             f'<div class="marquee__row marquee__row--line"><div class="marquee__track">{items}{items}</div></div></div>')
 
 
-def footer(copy):
+def footer():
     links = "".join(f'<a href="https://sweettouch.fr/{u}">{t}</a>' for t, u in FOOT_LINKS)
     soc = "".join(f'<a href="{u}">{t}</a>' for t, u in SOCIAL)
     return f'''<footer class="foot" id="book" data-tone="noir">
@@ -262,7 +262,7 @@ def footer(copy):
     <address class="foot__contact"><a href="tel:+33758963765">+33 7 58 96 37 65</a><a href="https://wa.me/%2B33758963765">WhatsApp +33 7 58 96 37 65</a>
       <a href="mailto:erotic.sweettouch@gmail.com">erotic.sweettouch@gmail.com</a><a href="https://goo.gl/maps/CbB6k75MipvzVnVbA">Avenue de Wagram 75017</a></address>
   </div>
-  <div class="foot__bottom"><span>{e(copy)}</span><span>We do not offer any kind of sexual services.</span><span class="foot__credit">Designed &amp; developed by <b>Next Web</b></span></div>
+  <div class="foot__bottom"><span>We do not offer any kind of sexual services.</span><span class="foot__credit">Designed &amp; developed by <b>Next Web</b></span></div>
 </footer>'''
 
 
@@ -377,7 +377,6 @@ def build_home():
     blog = between(L, "Blog", "## FAQ")
     posts = [blog[k:k + 4] for k in range(0, len(blog), 4)]
     fq = between(L, "## FAQ", "You can find us")
-    copy = next(l for l in L if l.startswith("Сopyright"))
 
     words = "".join(f"<li>{e(s)}</li>" for s in SUB)
     after = f'''<ul class="hx__ticker" aria-hidden="true">{words}</ul>
@@ -462,7 +461,7 @@ def build_home():
 </div>
 <button class="more seo__toggle" type="button" data-seo-toggle aria-expanded="false">Show all</button>
 </section>
-{footer(copy)}'''
+{footer()}'''
     return page(L[0], intro[:155], body)
 
 
@@ -474,7 +473,6 @@ def build_tantra():
     gi = L.index("## FAQ")
     team = [L[k + 2] for k in range(gi) if L[k] == "girl_video"]
     fq = L[gi + 1:L.index("Duration", gi)]
-    copy = next(l for l in L if l.startswith("Сopyright"))
     table = '''<div class="ptable">
   <div class="ptable__row ptable__head"><span>Duration</span><span>Incall</span><span>Outcall</span></div>
   <div class="ptable__row"><span>30 min</span><b>300 €</b><b class="dim">only incall €</b></div>
@@ -522,7 +520,7 @@ def build_tantra():
   <h2 class="book__title">Tantra<br>Massage</h2>
   {table}
 </section>
-{footer(copy)}'''
+{footer()}'''
     return page(L[0], art[1][:155], body)
 
 
