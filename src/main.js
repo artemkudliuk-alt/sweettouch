@@ -66,24 +66,32 @@ ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scrol
 /* ---------- Hero ---------- */
 const hx = $("[data-hx]");
 const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
+const hero = { glyphs: [], fs: 0, k: 1, dirty: true }; // canvas letter layout + current zoom
 const after = $(".hx__after", hx), hint = $(".hx__hint", hx), ticker = $(".hx__ticker", hx);
 let heroIntro = () => {}, startVid = () => {}, heroPrewarm = () => Promise.resolve();
-// Hero video: the whole file is downloaded into memory while the preloader draws (no streaming, so nothing can
-// buffer mid-transition), then attached. Phones get a light vertical cut (540x960), wider screens 1280x720.
-const vid = $(".hx__vid video", svg);
+// Video hero: the letters are painted on a canvas and the video is drawn through them (source-in). An SVG mask over a
+// <video> is ignored by Safari (it showed the bare clip, no letters) and re-rasterised on the CPU every frame elsewhere.
+const cv = $(".hx__cv", hx), ctx = cv?.getContext("2d"), vid = $(".hx__src", hx);
 const useVid = !!vid && !reduce;
+const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
+const poster = new Image();
+const posterReady = cv ? new Promise((r) => { poster.onload = poster.onerror = r; poster.src = narrow ? cv.dataset.posterM : cv.dataset.poster; }) : Promise.resolve();
 let vidReady = Promise.resolve();
 if (useVid) {
-  const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
+  // Whole file into memory while the preloader draws (nothing can buffer mid-transition). iOS only decodes once play()
+  // is called, so "ready" = file in memory + the clip actually playing (or play refused, e.g. Low Power Mode: poster).
   const src = narrow ? vid.dataset.srcM : vid.dataset.src;
-  if (narrow) vid.poster = "img/hero-poster-m.webp";
-  vid.preload = "auto";
-  const decoded = () => new Promise((r) => (vid.readyState >= 4 ? r() : vid.addEventListener("canplaythrough", r, { once: true })));
-  vidReady = fetch(src).then((res) => res.blob()).then((b) => { vid.src = URL.createObjectURL(b); return decoded(); })
-    .catch(() => { vid.src = src; return decoded(); }); // fetch blocked: fall back to streaming
-} else vid?.parentElement.remove();
-// Resolves once the video has really been playing for a moment (decoder warm, frames flowing)
-const vidRunning = () => (useVid ? new Promise((r) => { const tick = () => (vid.currentTime > 0.6 ? r() : requestAnimationFrame(tick)); tick(); }) : Promise.resolve());
+  const playing = () => new Promise((r) => {
+    vid.addEventListener("playing", r, { once: true });
+    vid.play().catch(r);
+    setTimeout(r, 4000);
+  });
+  vidReady = fetch(src).then((res) => { if (!res.ok) throw res.status; return res.blob(); })
+    .then((b) => { vid.src = URL.createObjectURL(b); return playing(); })
+    .catch(() => { vid.src = src; return playing(); });
+}
+// Resolves once frames are flowing (decoder warm), capped so a refused autoplay never holds the preloader
+const vidRunning = () => (useVid ? new Promise((r) => { const t0 = performance.now(); const tick = () => (vid.currentTime > 0.3 || performance.now() - t0 > 1500 ? r() : requestAnimationFrame(tick)); tick(); }) : Promise.resolve());
 const flight = { x: 0, y: 0, s: 14 }; // zoom origin + final scale of the scroll fly-in
 
 /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
@@ -91,10 +99,10 @@ const measure = document.createElement("canvas").getContext("2d");
 const layoutHero = () => {
   const W = innerWidth, H = innerHeight;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  $$("rect, image, mask, foreignObject", svg).forEach((n) => { n.setAttribute("x", 0); n.setAttribute("y", 0); n.setAttribute("width", W); n.setAttribute("height", H); });
-  const texts = $$("text", groups[0]), last = texts[texts.length - 1].textContent, navH = W < 720 ? 66 : 96;
+  $$("rect, image, mask", svg).forEach((n) => { n.setAttribute("x", 0); n.setAttribute("y", 0); n.setAttribute("width", W); n.setAttribute("height", H); });
+  const texts = $$("text", $(".hx__words--edge", svg)), last = texts[texts.length - 1].textContent, navH = W < 720 ? 66 : 96;
   // Real glyph metrics of the loaded face (measured at 100px, scale linearly): centre the visible caps, not the em boxes
-  measure.font = `900 100px "Bodoni Moda"`;
+  measure.font = `900 100px "Bodoni Hero"`;
   const capR = (measure.measureText("E").actualBoundingBoxAscent || 70) / 100;
   const descR = /[gjpqy]/.test(last) ? (measure.measureText("g").actualBoundingBoxDescent || 20) / 100 : 0;
   // Width sets the size, but on short screens the word + ticker + "Scroll" hint must still fit under the header
@@ -112,6 +120,10 @@ const layoutHero = () => {
   // mask text (scales with the zoom, keeps the letterforms) gives every serif and diagonal enough photo to read
   $(".hx__words--mask", svg).setAttribute("stroke-width", (fs * 0.014).toFixed(2));
   hx.style.setProperty("--tick-top", `${first + (texts.length - 1) * lh + desc + 14}px`);
+  // Canvas letters sit exactly where the SVG laid them out (per-glyph positions carry kerning and letter-spacing)
+  hero.fs = fs;
+  hero.glyphs = texts.flatMap((t) => [...t.textContent].map((ch, i) => { const p = t.getStartPositionOfChar(i); return [ch, p.x, p.y]; }));
+  hero.dirty = true;
   Object.assign(flight, { x: W / 2, y: H / 2, s: 14 });
   const t = texts.find((n) => n.textContent.includes("r"));
   if (!t) return;
@@ -119,7 +131,7 @@ const layoutHero = () => {
   // right half (chamfer distance transform): that is the ball's centre and radius.
   const c = measure.canvas, F = 400, N = 640, O = 80, B = 480;
   c.width = c.height = N;
-  measure.font = `900 ${F}px "Bodoni Moda"`;
+  measure.font = `900 ${F}px "Bodoni Hero"`;
   measure.fillText("r", O, B);
   const m = measure.measureText("r"), mid = O + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
   const a = measure.getImageData(0, 0, N, N).data, d = new Float32Array(N * N);
@@ -142,8 +154,47 @@ const layoutHero = () => {
   Object.assign(flight, { x, y, s: s * 1.1 });
 };
 layoutHero();
-document.fonts.ready.then(layoutHero); // metrics are exact only once Bodoni Black is in
+const heroFont = document.fonts.load('900 100px "Bodoni Hero"').catch(() => {});
+heroFont.then(layoutHero); // metrics are exact only once the hero face is in
 addEventListener("resize", () => { layoutHero(); ScrollTrigger.refresh(); });
+
+// Paint: glyphs (zoomed about the "r" ball) in white, then the video/poster drawn only where they are (source-in), then a
+// warm 10% lift. Once the ball covers the screen the frame is drawn whole. Pixel ratio capped at 2 (sharp, half the fill).
+const paintHero = () => {
+  const W = innerWidth, H = innerHeight, d = Math.min(devicePixelRatio || 1, 2);
+  if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, W, H);
+  const src = useVid && vid.readyState >= 2 ? vid : poster.naturalWidth ? poster : null;
+  if (!src || !hero.fs) return;
+  if (hero.k < flight.s / 1.1) {
+    ctx.save();
+    ctx.translate(flight.x, flight.y); ctx.scale(hero.k, hero.k); ctx.translate(-flight.x, -flight.y);
+    ctx.font = `900 ${hero.fs}px "Bodoni Hero"`;
+    ctx.fillStyle = ctx.strokeStyle = "#fff";
+    ctx.lineWidth = hero.fs * 0.014; // Bodoni hairlines are 1-2 px: a thin stroke keeps every serif readable over dark frames
+    ctx.lineJoin = "round";
+    for (const [ch, x, y] of hero.glyphs) { ctx.fillText(ch, x, y); ctx.strokeText(ch, x, y); }
+    ctx.restore();
+    ctx.globalCompositeOperation = "source-in";
+  }
+  const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight, sc = Math.max(W / sw, H / sh);
+  ctx.drawImage(src, (W - sw * sc) / 2, (H - sh * sc) / 2, sw * sc, sh * sc);
+  ctx.globalCompositeOperation = "source-atop";
+  ctx.fillStyle = "rgba(242, 179, 94, 0.1)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "source-over";
+};
+if (cv) {
+  posterReady.then(() => { hero.dirty = true; });
+  // Repaint only when something changed: a new video frame (requestVideoFrameCallback), zoom, layout or the poster
+  const rvfc = useVid && "requestVideoFrameCallback" in vid;
+  if (rvfc) { const onFrame = () => { hero.dirty = true; vid.requestVideoFrameCallback(onFrame); }; vid.requestVideoFrameCallback(onFrame); }
+  gsap.ticker.add(() => {
+    if (hero.dirty || (useVid && !rvfc && !vid.paused)) { hero.dirty = false; paintHero(); }
+  });
+}
 
 if (!reduce) {
   // Frames cross-dissolve inside the letters every 4 s
@@ -172,7 +223,7 @@ if (!reduce) {
   const fly = { z: 0 };
   // The video plays the whole time the hero is on screen (also through the fly-in) and stops once it is scrolled
   // away. It is started while the preloader still covers the page, so it is already running when the letters appear.
-  let vidOn = false, heroOn = true;
+  let vidOn = useVid, heroOn = true; // the clip is already playing (started while the preloader loads it)
   const syncVid = () => {
     if (!useVid) return;
     const play = vidOn && heroOn;
@@ -183,6 +234,7 @@ if (!reduce) {
   const zoomTo = () => {
     const k = flight.s ** fly.z;
     gsap.set(groups, { scale: k, svgOrigin: `${flight.x} ${flight.y}` });
+    hero.k = k; hero.dirty = true;
   };
   startVid = () => { vidOn = true; syncVid(); };
   zoomTo();
@@ -198,7 +250,7 @@ if (!reduce) {
 
   // Entrance continues the preloader's gold line: the letter outlines draw themselves, then the video fills
   // the letters from the bottom up. Hidden from the start so nothing flashes before the hand-off.
-  const edge = $(".hx__words--edge", svg), fill = $("g[mask]", svg), INK = "3000"; // > longest glyph outline in px
+  const edge = $(".hx__words--edge", svg), fill = cv || $("g[mask]", svg), INK = "3000"; // > longest glyph outline in px
   gsap.set(edge, { strokeDasharray: `0 ${INK}` });
   gsap.set(fill, { clipPath: "inset(100% 0% 0% 0%)" });
   heroIntro = () => gsap.timeline()
@@ -239,8 +291,8 @@ if (reduce || !loader) {
     return tl;
   };
   const ready = Promise.race([
-    Promise.all([document.fonts.ready, vidReady, new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = full.getAttribute("href"); })]),
-    new Promise((r) => setTimeout(r, 20000)), // very slow network: go anyway after 20 s, the poster sits under the video
+    Promise.all([document.fonts.ready, heroFont, vidReady, full ? new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = full.getAttribute("href"); }) : posterReady]),
+    new Promise((r) => setTimeout(r, 9000)), // slow network: open anyway after 9 s, the poster stands in until the clip arrives
   ]);
   // Start drawing only once the page has loaded and the browser delivers frames again: during load the first
   // paint/decode stalls rAF for ~0.6 s, which froze the line mid-way and then made it jump.
@@ -447,6 +499,16 @@ $$("[data-rail]").forEach((rail) => {
 
 /* ---------- Stage: next frame opens in columns, alternating from top and bottom ---------- */
 const stage = $("[data-stage]");
+// Stage photos are CSS backgrounds (no native lazy loading): attach them only when the stage is ~2 screens away, so they
+// never compete with the hero video during the preloader
+if (stage) {
+  const io = new IntersectionObserver(([en]) => {
+    if (!en.isIntersecting) return;
+    $$(".stage__layer", stage).forEach((l) => l.style.setProperty("--img", `url(${l.dataset.img})`));
+    io.disconnect();
+  }, { rootMargin: "200% 0px" });
+  io.observe(stage);
+}
 if (stage && !reduce) {
   const layers = $$(".stage__layer", stage), texts = $$(".stage__text", stage), segs = $$(".stage__bar span", stage);
   const N = innerWidth < 720 ? 5 : 6;

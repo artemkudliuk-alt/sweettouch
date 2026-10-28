@@ -109,7 +109,7 @@ def book(names, rows):
       <fieldset class="book__step"><legend><span>03</span>Duration</legend><div class="durs" data-durs></div></fieldset>
     </div>
     <aside class="book__card">
-      <figure class="book__photo"><img data-book-photo src="img/{names[0].lower()}.webp" alt=""></figure>
+      <figure class="book__photo"><img data-book-photo src="img/{names[0].lower()}.webp" alt="" loading="lazy" decoding="async"></figure>
       <dl class="book__sum">
         <div><dt>Masseuse</dt><dd data-sum="girl"></dd></div>
         <div><dt>Massage</dt><dd data-sum="massage"></dd></div>
@@ -270,19 +270,22 @@ def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
     main.js sizes the viewBox to the viewport and lays out the lines (fs = font size as share of width, desktop/mobile).
     The scroll flies through the ball terminal of the first "r" (main.js).
     video: looped clip inside the letters; imgs[0] stays under it as the poster while it loads."""
-    vid = (f'<foreignObject class="hx__vid"><video xmlns="http://www.w3.org/1999/xhtml" data-src="video/{video}.mp4" data-src-m="video/{video}-m.mp4" poster="img/{imgs[0]}.webp" '
-           'muted loop playsinline preload="none"></video></foreignObject>') if video else ""
     texts = "".join(f'<text text-anchor="middle">{e(w)}</text>' for w in words)
+    # Video pages paint the letters on a canvas (video drawn through the glyphs, see main.js): an SVG mask over a
+    # <video> is ignored by Safari and re-rasterised on the CPU every frame elsewhere
+    vid = (f'<video class="hx__src" data-src="video/{video}.mp4" data-src-m="video/{video}-m.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>'
+           f'<canvas class="hx__cv" data-poster="img/{imgs[0]}.webp" data-poster-m="img/{imgs[0]}-m.webp" aria-hidden="true"></canvas>') if video else ""
     images = "".join(f'<image class="hx__img{" is-on" if i == 0 else ""}" href="img/{s}.webp" preserveAspectRatio="xMidYMid slice"/>' for i, s in enumerate(imgs))
     return f'''<section class="hx {cls}" data-hx>
   <div class="hx__pin">
     <h1 class="sr-only">{e(label)}</h1>
+    {vid}
     <svg class="hx__svg" data-fs="{fs[0]}" data-fs-m="{fs[1]}" aria-hidden="true">
       <defs><mask id="hx-mask" maskUnits="userSpaceOnUse">
         <rect class="hx__mbg" fill="#000"/><rect class="hx__mfull" fill="#fff" opacity="0"/>
         <g class="hx__words hx__words--mask" fill="#fff" stroke="#fff" stroke-linejoin="round">{texts}</g>
       </mask></defs>
-      <g mask="url(#hx-mask)">{images}{vid}<rect class="hx__lift" fill="#f2b35e" opacity="0.1"/></g>
+      {"" if video else f'<g mask="url(#hx-mask)">{images}<rect class="hx__lift" fill="#f2b35e" opacity="0.1"/></g>'}
       <g class="hx__words hx__words--edge" fill="none">{texts}</g>
     </svg>
     <div class="hx__shade" aria-hidden="true"></div>
@@ -300,6 +303,7 @@ def page(title, desc, body):
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/bodoni-black.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,900;1,6..96,400&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/style.css">
@@ -352,7 +356,7 @@ def build_home():
     </div>
     <p class="hx__hint" aria-hidden="true">Scroll</p>'''
     stage_imgs = ["m-all-day", "m-overnight", "m-six-hands", "m-erotic-chat", "m-wife"]
-    layers = "\n".join(f'<div class="stage__layer" style="--img:url(/img/{stage_imgs[k]}.webp)"></div>' for k in range(len(advs)))
+    layers = "\n".join(f'<div class="stage__layer" data-img="/img/{stage_imgs[k]}.webp"></div>' for k in range(len(advs)))
     texts = "\n".join(f'<article class="stage__text"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
                       for a, b, c, d in advs)
     steps_html = "\n".join(f'<li class="step"><span class="step__n">{e(n)}</span><h3>{e(t)}</h3><p>{e(p)}</p></li>' for n, t, p in steps)

@@ -1,3 +1,6 @@
+/* Hero letters: a static (non-variable) Bodoni Moda Black. Safari draws variable fonts on <canvas> at the default
+   weight, so the canvas letters came out thin; one static file keeps SVG, canvas and the glyph maths identical. */
+@font-face { font-family: "Bodoni Hero"; src: url(/fonts/bodoni-black.woff2) format("woff2"); font-weight: 900; font-style: normal; font-display: block; }
 @import "lenis/dist/lenis.css";
 
 :root {
@@ -131,8 +134,9 @@ main { position: relative; z-index: 1; }
 .hx__svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; shape-rendering: geometricPrecision; text-rendering: geometricPrecision; image-rendering: high-quality; }
 .hx__img { opacity: 0; transition: opacity 1.4s var(--ease); }
 .hx__img.is-on { opacity: 1; }
-.hx__vid video { display: block; width: 100%; height: 100%; object-fit: cover; }
-.hx__words text { font-family: var(--serif); font-weight: 900; letter-spacing: -0.045em; }
+.hx__cv { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
+.hx__src { position: absolute; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; } /* decode source for the canvas */
+.hx__words text { font-family: "Bodoni Hero", var(--serif); font-weight: 900; letter-spacing: -0.045em; }
 .hx__words--edge { stroke: rgb(184 146 90 / 0.7); stroke-width: 1px; vector-effect: non-scaling-stroke; }
 .hx__shade { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none; background: linear-gradient(90deg, rgb(26 6 9 / 0.85), rgb(26 6 9 / 0.2) 60%, rgb(26 6 9 / 0.5)); }
 .hx__after { position: absolute; z-index: 4; left: var(--pad); right: var(--pad); bottom: 72px; display: grid; gap: 22px; justify-items: start; max-width: 560px; }
