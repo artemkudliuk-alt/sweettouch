@@ -511,9 +511,15 @@ $$(".tabs").forEach((list) => {
 /* ---------- Rails: drag with inertia-free pointer scroll + buttons ---------- */
 $$("[data-rail]").forEach((rail) => {
   const track = $(".rail__track", rail);
-  const step = () => (track.firstElementChild?.offsetWidth || 300) * 2;
-  $("[data-prev]", rail).addEventListener("click", () => track.scrollBy({ left: -step(), behavior: "smooth" }));
-  $("[data-next]", rail).addEventListener("click", () => track.scrollBy({ left: step(), behavior: "smooth" }));
+  // Arrows move exactly one card: to the next (or previous) card edge from where the track is now
+  const go = (dir) => {
+    const cards = [...track.children], base = cards[0]?.offsetLeft ?? 0, x = track.scrollLeft;
+    const lefts = cards.map((c) => c.offsetLeft - base);
+    const t = dir > 0 ? lefts.find((l) => l > x + 4) : lefts.findLast((l) => l < x - 4);
+    if (t !== undefined) track.scrollTo({ left: t, behavior: "smooth" });
+  };
+  $("[data-prev]", rail).addEventListener("click", () => go(-1));
+  $("[data-next]", rail).addEventListener("click", () => go(1));
   if (!fine) return;
   let x0 = 0, s0 = 0, moved = false, down = false;
   track.addEventListener("pointerdown", (e) => { down = true; moved = false; x0 = e.clientX; s0 = track.scrollLeft; });
