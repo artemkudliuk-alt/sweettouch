@@ -67,7 +67,7 @@ ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scrol
 const hx = $("[data-hx]");
 const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
 const after = $(".hx__after", hx), hint = $(".hx__hint", hx), ticker = $(".hx__ticker", hx);
-let heroIntro = () => {}, startVid = () => {};
+let heroIntro = () => {}, startVid = () => {}, heroPrewarm = () => Promise.resolve();
 // Hero video: the whole file is downloaded into memory while the preloader draws (no streaming, so nothing can
 // buffer mid-transition), then attached. Phones get a light vertical cut (540x960), wider screens 1280x720.
 const vid = $(".hx__vid video", svg);
@@ -205,6 +205,17 @@ if (!reduce) {
     .to(edge, { strokeDasharray: `${INK} 0`, duration: 2, ease: "power2.inOut" }, 0)
     .to(fill, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.6, ease: "expo.inOut" }, 1.1)
     .to(edge, { opacity: 0, duration: 1.2, ease: "power2.out" }, 2.6); // the gold line only draws the letters in; at rest they are clean photo shapes
+  // Paint the full letters (mask + video + strokes) for two frames while the preloader still covers the screen, so
+  // their first rasterisation does not land on the first frame of the reveal
+  heroPrewarm = () => new Promise((r) => {
+    gsap.set(fill, { clipPath: "inset(0% 0% 0% 0%)" });
+    gsap.set(edge, { strokeDasharray: `${INK} 0` });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      gsap.set(fill, { clipPath: "inset(100% 0% 0% 0%)" });
+      gsap.set(edge, { strokeDasharray: `0 ${INK}` });
+      r();
+    }));
+  });
 }
 
 /* ---------- Preloader: line draws the silhouette, then flows into the hero letters ---------- */
@@ -240,7 +251,7 @@ if (reduce || !loader) {
   settled.then(() => gsap.timeline()
     .add(drawUp(2.6), 0)
     // Open only when the video is fully loaded and already running under the drawing, so the letters show it live
-    .add(() => ready.then(() => { prepLoad(); startVid(); return Promise.race([vidRunning(), new Promise((r) => setTimeout(r, 3000))]); })
+    .add(() => ready.then(() => { prepLoad(); startVid(); return Promise.race([vidRunning(), new Promise((r) => setTimeout(r, 3000))]); }).then(() => heroPrewarm())
       .then(() => gsap.timeline({ onComplete: () => loader.remove() })
       // The figure's line flows on upward and off its own end (dash slides past), the backdrop dissolves into the
       // hero's same dark tone, and the hero letters pick the line up
