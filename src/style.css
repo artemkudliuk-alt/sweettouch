@@ -52,8 +52,10 @@ button { font: inherit; color: inherit; }
 }
 @keyframes drift { to { transform: translate3d(6%, 4%, 0) scale(1.08); } }
 
-.thread { position: fixed; left: 32px; top: 0; bottom: 0; width: 1px; z-index: 5; pointer-events: none; }
-.thread span { display: block; height: 100%; background: linear-gradient(transparent, var(--or) 10%, var(--or) 90%, transparent); opacity: 0.6; transform-origin: top; transform: scaleY(0); }
+/* Scroll thread: centred in the left page gutter at every width, and behind the content so photos and copy cover it */
+.thread { position: fixed; left: calc(var(--pad) / 2); top: 0; bottom: 0; width: 1px; z-index: 0; pointer-events: none; }
+main { position: relative; z-index: 1; }
+.thread span { display: block; height: 100%; background: linear-gradient(transparent, var(--or) 10%, var(--or) 90%, transparent); opacity: 0.45; transform-origin: top; transform: scaleY(0); }
 
 /* Type */
 .h2 { font: 400 clamp(48px, 6.2vw, 88px)/0.94 var(--serif); letter-spacing: -0.03em; text-wrap: balance; }
@@ -352,7 +354,6 @@ button { font: inherit; color: inherit; }
   .drawer__big { font-size: 34px; white-space: normal; }
   .drawer__side > .nav__lang { display: flex; }
   body { font-size: 16px; }
-  .thread { left: 8px; }
   .hx { height: 220vh; }
   .hx__light { background: radial-gradient(200px circle at var(--lx, 50%) var(--ly, 50%), rgb(242 179 94 / 0.3), transparent 70%); }
   .hx__after { bottom: 40px; }
