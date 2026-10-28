@@ -152,19 +152,6 @@ if (!reduce) {
   }, 4000);
   // No Ken Burns on the masked photos: a continuously transformed <image> is resampled with Chrome's fast filter (looked pixelated)
 
-  // Candle light follows the cursor; on touch it drifts in a 12 s circle. It is a fixed-size disc moved only by
-  // transform (composited): the old full-screen gradient with a blend mode repainted the whole hero every frame.
-  const pin = $(".hx__pin", hx), light = $(".hx__light", hx);
-  gsap.set(light, { x: innerWidth / 2, y: innerHeight / 2 });
-  if (fine) {
-    const qx = gsap.quickTo(light, "x", { duration: 0.9, ease: "power3" }), qy = gsap.quickTo(light, "y", { duration: 0.9, ease: "power3" });
-    pin.addEventListener("pointermove", (e) => { qx(e.clientX); qy(e.clientY); });
-  } else {
-    const a = { t: 0 };
-    gsap.to(a, { t: Math.PI * 2, duration: 12, repeat: -1, ease: "none", onUpdate: () =>
-      gsap.set(light, { x: innerWidth * (0.5 + Math.cos(a.t) * 0.3), y: innerHeight * (0.5 + Math.sin(a.t) * 0.2) }) });
-  }
-
   // Massage names roll under the word (home only)
   if (ticker) {
     const items = $$("li", ticker);

@@ -286,7 +286,6 @@ def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
       <g class="hx__words hx__words--edge" fill="none">{texts}</g>
     </svg>
     <div class="hx__shade" aria-hidden="true"></div>
-    <div class="hx__light" aria-hidden="true"></div>
     {after}
   </div>
 </section>'''
