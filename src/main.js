@@ -68,6 +68,17 @@ const hx = $("[data-hx]");
 const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
 const after = $(".hx__after", hx), hint = $(".hx__hint", hx), ticker = $(".hx__ticker", hx);
 let heroIntro = () => {};
+// Hero video starts downloading now, while the preloader draws, and the preloader waits for it. Phones get a
+// light vertical cut (540x960) that fills a portrait screen; wider screens get the 1280x720 one.
+const vid = $(".hx__vid video", svg);
+const useVid = !!vid && !reduce;
+if (useVid) {
+  const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
+  vid.preload = "auto";
+  vid.src = narrow ? vid.dataset.srcM : vid.dataset.src;
+  if (narrow) vid.poster = "img/hero-poster-m.webp";
+} else vid?.parentElement.remove();
+const vidReady = useVid ? new Promise((r) => (vid.readyState >= 3 ? r() : vid.addEventListener("canplaythrough", r, { once: true }))) : Promise.resolve();
 const flight = { x: 0, y: 0, s: 14 }; // zoom origin + final scale of the scroll fly-in
 
 /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
@@ -164,9 +175,20 @@ if (!reduce) {
 
   gsap.set(after.children, { autoAlpha: 0, y: 40 });
   const fly = { z: 0 };
+  // The video inside the masked letters is re-rasterised on every frame it plays, so it runs only while it is the
+  // picture: after the intro, at rest or fully landed, and while the hero is on screen. Mid-flight it holds still.
+  let vidOn = false, heroOn = true;
+  const syncVid = () => {
+    if (!useVid) return;
+    const play = vidOn && heroOn && (fly.z < 0.02 || fly.z > 0.98);
+    if (play && vid.paused) vid.play().catch(() => {});
+    else if (!play && !vid.paused) vid.pause();
+  };
+  ScrollTrigger.create({ trigger: hx, start: "top bottom", end: "bottom top", onToggle: (s) => { heroOn = s.isActive; syncVid(); } });
   const zoomTo = () => {
     const k = flight.s ** fly.z;
     gsap.set(groups, { scale: k, svgOrigin: `${flight.x} ${flight.y}` });
+    syncVid();
   };
   zoomTo();
   ScrollTrigger.addEventListener("refresh", zoomTo); // re-apply after resize re-layout
@@ -175,7 +197,6 @@ if (!reduce) {
     .to([hint, ticker].filter(Boolean), { autoAlpha: 0, duration: 0.1 }, 0)
     // Constant-feeling flight: scale = s^z, so every scrolled step multiplies the zoom by the same factor
     .to(fly, { z: 1, ease: "power1.in", duration: 0.6, onUpdate: zoomTo }, 0)
-    .to(".hx__words--edge", { opacity: 0, duration: 0.12 }, 0.4)
     .set(".hx__mfull", { opacity: 1 }, 0.6) // the ball already fills the screen by now; this only seals the edges
     .to(".hx__shade", { opacity: 1, duration: 0.25 }, 0.5)
     .to(after.children, { autoAlpha: 1, y: 0, stagger: 0.06, duration: 0.2 }, 0.62);
@@ -185,17 +206,20 @@ if (!reduce) {
   const edge = $(".hx__words--edge", svg), fill = $("g[mask]", svg), INK = "3000"; // > longest glyph outline in px
   gsap.set(edge, { strokeDasharray: `0 ${INK}` });
   gsap.set(fill, { clipPath: "inset(100% 0% 0% 0%)" });
-  heroIntro = () => gsap.timeline()
+  heroIntro = () => gsap.timeline({ onStart: () => { vidOn = true; syncVid(); } })
     .to(edge, { strokeDasharray: `${INK} 0`, duration: 2, ease: "power2.inOut" }, 0)
     .to(fill, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.6, ease: "expo.inOut" }, 1.1)
-    .set(edge, { clearProps: "strokeDasharray" });
+    .to(edge, { opacity: 0, duration: 1.2, ease: "power2.out" }, 2.6); // the gold line only draws the letters in; at rest they are clean photo shapes
 }
 
 /* ---------- Preloader: line draws the silhouette, then flows into the hero letters ---------- */
 const loader = $("[data-loader]");
-const finishLoad = () => { document.body.classList.remove("is-loading"); gsap.ticker.lagSmoothing(0); lenis?.start(); ScrollTrigger.refresh(); };
+// Heavy work (trigger re-measure) runs while the drawing still covers the screen; the hand-off itself only flips flags
+const prepLoad = () => ScrollTrigger.refresh();
+const finishLoad = () => { document.body.classList.remove("is-loading"); gsap.ticker.lagSmoothing(0); lenis?.start(); };
 if (reduce || !loader) {
   loader?.remove();
+  prepLoad();
   finishLoad();
 } else {
   // Every strand runs bottom -> top; a strand starts when the rising front reaches its lowest point and moves
@@ -208,8 +232,8 @@ if (reduce || !loader) {
     return tl;
   };
   const ready = Promise.race([
-    Promise.all([document.fonts.ready, new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = full.getAttribute("href"); })]),
-    new Promise((r) => setTimeout(r, 4000)),
+    Promise.all([document.fonts.ready, vidReady, new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = full.getAttribute("href"); })]),
+    new Promise((r) => setTimeout(r, 6000)), // slow network: go anyway, the poster sits under the video
   ]);
   // Start drawing only once the page has loaded and the browser delivers frames again: during load the first
   // paint/decode stalls rAF for ~0.6 s, which froze the line mid-way and then made it jump.
@@ -219,7 +243,7 @@ if (reduce || !loader) {
   });
   settled.then(() => gsap.timeline()
     .add(drawUp(2.6), 0)
-    .add(() => ready.then(() => gsap.timeline({ onComplete: () => loader.remove() })
+    .add(() => ready.then(prepLoad).then(() => gsap.timeline({ onComplete: () => loader.remove() })
       // The figure's line flows on upward and off its own end (dash slides past), the backdrop dissolves into the
       // hero's same dark tone, and the hero letters pick the line up
       .to(".loader__line", { attr: { "stroke-dashoffset": -1 }, duration: 1.1, ease: "power2.in" })
@@ -238,6 +262,15 @@ if (!reduce) {
   // Big photos drift slower than the page
   $$("[data-parallax] img").forEach((img) => gsap.fromTo(img, { yPercent: -8 }, { yPercent: 0, ease: "none",
     scrollTrigger: { trigger: img.parentElement, start: "top bottom", end: "bottom top", scrub: true } }));
+
+  // Pause: the window opens to full screen while the photo settles, then the line rises word by word
+  $$("[data-pause]").forEach((sec) => {
+    const line = SplitText.create($(".pause__line", sec), { type: "words", mask: "words" });
+    gsap.timeline({ scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: 1 } })
+      .fromTo($(".pause__frame", sec), { clipPath: innerWidth < 720 ? "inset(26% 18% 26% 18%)" : "inset(24% 34% 24% 34%)" }, { clipPath: "inset(0% 0% 0% 0%)", ease: "power2.inOut", duration: 1 }, 0)
+      .to($(".pause__frame img", sec), { scale: 1, ease: "power2.out", duration: 1 }, 0)
+      .from(line.words, { yPercent: 110, stagger: 0.04, duration: 0.4, ease: "power3.out" }, 0.45);
+  });
 }
 
 /* ---------- Tone journey: the page slowly sinks from red to black, and only twice opens to skin-light ----------
@@ -266,6 +299,22 @@ buildTones();
 ScrollTrigger.create({ start: 0, end: () => ScrollTrigger.maxScroll(window), animation: toneTl, scrub: reduce ? true : 0.8 });
 ScrollTrigger.addEventListener("refreshInit", buildTones); // layout changed (resize, accordion, fonts): re-place transitions
 $$("details").forEach((d) => d.addEventListener("toggle", () => ScrollTrigger.refresh()));
+// Accordions open and close as a smooth height tween instead of the native jump
+if (!reduce) $$("details.faq__item, details.chapter").forEach((d) => {
+  const body = d.querySelector(":scope > :not(summary)");
+  $("summary", d).addEventListener("click", (ev) => {
+    ev.preventDefault();
+    gsap.killTweensOf(body);
+    if (d.open) {
+      gsap.to(body, { height: 0, opacity: 0, overflow: "hidden", duration: 0.5, ease: "power3.inOut",
+        onComplete: () => { d.open = false; gsap.set(body, { clearProps: "height,opacity,overflow" }); } });
+    } else {
+      d.open = true;
+      gsap.fromTo(body, { height: 0, opacity: 0, overflow: "hidden" }, { height: "auto", opacity: 1, duration: 0.8, ease: "expo.out",
+        onComplete: () => gsap.set(body, { clearProps: "height,opacity,overflow" }) });
+    }
+  });
+});
 // Any later change of page height (lazy images, fonts, split text) would leave trigger positions stale; on mobile the
 // footer mark's start ended up below the max scroll and never fired
 let lastH = 0, heightTimer;
@@ -294,6 +343,26 @@ if (!reduce) {
       .fromTo(fig, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.4, ease: "expo.inOut" })
       .from($("img", fig), { scale: 1.25, duration: 1.8, ease: "expo.out" }, 0.1);
   });
+
+  // Girls: on desktop the section pins and the rail travels sideways with the scroll; photos drift against it
+  const girlsSec = $("[data-girls]");
+  if (girlsSec) gsap.matchMedia().add("(min-width: 1024px) and (pointer: fine)", () => {
+    const track = $(".rail__track", girlsSec);
+    girlsSec.classList.add("is-pinned");
+    track.scrollLeft = 0;
+    const dist = () => track.scrollWidth - track.clientWidth;
+    const travel = gsap.to(track, { x: () => -dist(), ease: "none", scrollTrigger: { trigger: girlsSec, start: "top top", end: () => `+=${dist()}`,
+      pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true, refreshPriority: 1 } }); // refresh first: its spacer shifts every trigger below
+    gsap.to($(".girls__progress span", girlsSec), { scaleX: 1, ease: "none", scrollTrigger: { trigger: girlsSec, start: "top top", end: () => `+=${dist()}`, scrub: true } });
+    $$(".card--g img", track).forEach((img) => gsap.fromTo(img, { xPercent: -7, scale: 1.16 }, { xPercent: 7, ease: "none",
+      scrollTrigger: { trigger: img.closest(".card"), containerAnimation: travel, start: "left right", end: "right left", scrub: true } }));
+    return () => girlsSec.classList.remove("is-pinned");
+  });
+
+  // How it works: each step's gold rule draws left to right, then its outlined number rises
+  $$(".step").forEach((st, i) => gsap.timeline({ scrollTrigger: { trigger: ".steps", start: "top 80%", once: true }, delay: i * 0.18 })
+    .fromTo(st, { "--line-x": 0 }, { "--line-x": 1, duration: 1.2, ease: "expo.inOut" })
+    .from($(".step__n", st), { yPercent: 40, autoAlpha: 0, duration: 1.2, ease: "expo.out" }, 0.3));
 
   // Rail cards arrive as a wave
   $$("[data-rail]").forEach((rail) => {
@@ -401,4 +470,41 @@ if (stage && !reduce) {
   tl.to({}, { duration: 0.4 });
 } else if (stage) {
   stage.classList.add("is-static");
+}
+
+/* ---------- Booking: choices -> live summary, price and a prefilled WhatsApp message ---------- */
+const bookEl = $("[data-book]");
+if (bookEl) {
+  const sel = $("select", bookEl), durs = $("[data-durs]", bookEl), wa = $("[data-wa]", bookEl), photo = $("[data-book-photo]", bookEl);
+  const sum = (k, v) => { $(`[data-sum="${k}"]`, bookEl).textContent = v; };
+  const fillDurs = () => {
+    const keep = $("input[name=dur]:checked", durs)?.value;
+    durs.replaceChildren(...JSON.parse(sel.selectedOptions[0].dataset.prices).map(([d, p]) => {
+      const l = document.createElement("label");
+      l.className = "dur";
+      l.innerHTML = `<input type="radio" name="dur"><span></span><b></b>`;
+      Object.assign(l.firstChild, { value: d });
+      l.firstChild.dataset.price = p;
+      l.children[1].textContent = d;
+      l.children[2].textContent = `${p} €`;
+      return l;
+    }));
+    ($$("input", durs).find((i) => i.value === keep) || $("input", durs)).checked = true;
+  };
+  const update = (animate) => {
+    const girl = $("input[name=girl]:checked", bookEl).value, d = $("input[name=dur]:checked", durs);
+    sum("girl", girl); sum("massage", sel.value); sum("dur", d.value); sum("price", d.dataset.price);
+    wa.href = `https://wa.me/33758963765?text=${encodeURIComponent(`Hello SweetTouch! I would like to book ${sel.value} (${d.value}) with ${girl}.`)}`;
+    if (animate && !reduce) gsap.from('[data-sum="price"]', { yPercent: 70, autoAlpha: 0, duration: 0.6, ease: "expo.out" });
+  };
+  bookEl.addEventListener("change", (ev) => {
+    if (ev.target === sel) fillDurs();
+    if (ev.target.name === "girl") {
+      photo.src = `img/${ev.target.value.toLowerCase()}.webp`;
+      if (!reduce) gsap.fromTo(photo, { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.8, ease: "expo.out" });
+    }
+    update(true);
+  });
+  fillDurs();
+  update(false);
 }

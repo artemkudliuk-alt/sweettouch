@@ -1,6 +1,6 @@
 """Builds index.html and tantra.html from the sweettouch.fr text dumps in ../content.
 Run: python -I build.py   (re-run after editing content or templates)"""
-import html, re
+import html, json, re
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -73,12 +73,16 @@ def mcard(name, prices, href="#"):
 
 def rail(cards, label, cls=""):
     return (f'<div class="rail{cls}" data-rail><div class="rail__track" tabindex="0" aria-label="{e(label)}">{"".join(cards)}</div>'
-            '<div class="rail__nav"><button type="button" data-prev aria-label="Previous">Previous</button>'
-            '<button type="button" data-next aria-label="Next">Next</button></div></div>')
+            f'<div class="rail__nav"><button type="button" data-prev aria-label="Previous">{icon("left")}</button>'
+            f'<button type="button" data-next aria-label="Next">{icon("right")}</button></div></div>')
+
+
+def group_rows(rows):
+    return [[r for r in rows if (g is None and not any(r[0] in s for _, s in GROUPS[1:])) or (g and r[0] in g)] for _, g in GROUPS]
 
 
 def massages_tabs(rows):
-    grouped = [[r for r in rows if (g is None and not any(r[0] in s for _, s in GROUPS[1:])) or (g and r[0] in g)] for _, g in GROUPS]
+    grouped = group_rows(rows)
     tabs = "".join(f'<button type="button" role="tab" aria-selected="{"true" if i == 0 else "false"}" data-tab="{i}">{e(t)} <sup>{len(grouped[i])}</sup></button>'
                    for i, (t, _) in enumerate(GROUPS))
     panels = "".join(f'<div class="tabpanel" role="tabpanel" data-panel="{i}"{"" if i == 0 else " hidden"}>'
@@ -86,6 +90,40 @@ def massages_tabs(rows):
                      for i, g in enumerate(grouped))
     assert sum(map(len, grouped)) == len(rows), "every service must land in exactly one tab"
     return f'<div class="tabs" role="tablist">{tabs}</div>{panels}'
+
+
+def book(names, rows):
+    """Booking: pick a masseuse, a massage and a duration; the summary shows the price and hands the choice to
+    phone / WhatsApp (prefilled message) / Telegram. Prices come straight from the parsed service list."""
+    girls_html = "".join(f'<label class="pick"><input type="radio" name="girl" value="{e(n)}"{" checked" if i == 0 else ""}>'
+                         f'<img src="img/{n.lower()}.webp" alt="" loading="lazy"><span>{e(n)}</span></label>' for i, n in enumerate(names))
+    opts = "".join(f'<optgroup label="{e(t)}">' + "".join(f'<option value="{e(n)}" data-prices="{e(json.dumps(p))}">{e(n)}</option>' for n, p in g) + "</optgroup>"
+                   for (t, _), g in zip(GROUPS, group_rows(rows)))
+    return f'''<section class="sect book" id="book" data-tone="wine">
+  <h2 class="h2 book__title">Book your massage</h2>
+  <div class="book__grid" data-book>
+    <div class="book__steps">
+      <fieldset class="book__step"><legend><span>01</span>Masseuse</legend><div class="picks">{girls_html}</div></fieldset>
+      <fieldset class="book__step"><legend><span>02</span>Massage</legend>
+        <div class="book__select"><select name="massage" aria-label="Massage">{opts}</select></div></fieldset>
+      <fieldset class="book__step"><legend><span>03</span>Duration</legend><div class="durs" data-durs></div></fieldset>
+    </div>
+    <aside class="book__card">
+      <figure class="book__photo"><img data-book-photo src="img/{names[0].lower()}.webp" alt=""></figure>
+      <dl class="book__sum">
+        <div><dt>Masseuse</dt><dd data-sum="girl"></dd></div>
+        <div><dt>Massage</dt><dd data-sum="massage"></dd></div>
+        <div><dt>Duration</dt><dd data-sum="dur"></dd></div>
+      </dl>
+      <p class="book__price"><span data-sum="price"></span> €</p>
+      <div class="book__cta">
+        <a class="btn" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
+        <a class="btn btn--line" data-wa href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
+        <a class="btn btn--line" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a>
+      </div>
+    </aside>
+  </div>
+</section>'''
 
 
 def girls(names):
@@ -135,6 +173,9 @@ ICON = {  # Lucide-style line icons
     "phone": '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
     "chat": '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
     "send": '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
+    "left": '<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
+    "right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+    "out": '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
 }
 MAIN = [("Our masseuses", "https://sweettouch.fr/girl", "katlin"), ("Massages & prices", "index.html#massages", "m-tantra"),
         ("Paris locations", "https://sweettouch.fr/paris-locations", "m-overnight"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "m-sexy-guide"),
@@ -229,8 +270,8 @@ def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
     main.js sizes the viewBox to the viewport and lays out the lines (fs = font size as share of width, desktop/mobile).
     The scroll flies through the ball terminal of the first "r" (main.js).
     video: looped clip inside the letters; imgs[0] stays under it as the poster while it loads."""
-    vid = (f'<foreignObject class="hx__vid"><video xmlns="http://www.w3.org/1999/xhtml" src="video/{video}.mp4" poster="img/{imgs[0]}.webp" '
-           'autoplay muted loop playsinline preload="auto"></video></foreignObject>') if video else ""
+    vid = (f'<foreignObject class="hx__vid"><video xmlns="http://www.w3.org/1999/xhtml" data-src="video/{video}.mp4" data-src-m="video/{video}-m.mp4" poster="img/{imgs[0]}.webp" '
+           'muted loop playsinline preload="none"></video></foreignObject>') if video else ""
     texts = "".join(f'<text text-anchor="middle">{e(w)}</text>' for w in words)
     images = "".join(f'<image class="hx__img{" is-on" if i == 0 else ""}" href="img/{s}.webp" preserveAspectRatio="xMidYMid slice"/>' for i, s in enumerate(imgs))
     return f'''<section class="hx {cls}" data-hx>
@@ -271,6 +312,11 @@ def page(title, desc, body):
 <div class="glow" aria-hidden="true"></div>
 <div class="thread" aria-hidden="true"><span></span></div>
 {nav()}
+<nav class="mbar" aria-label="Quick contact">
+  <a href="tel:+33758963765" aria-label="+33 7 58 96 37 65">{icon("phone")}Call</a>
+  <a href="https://wa.me/33758963765" aria-label="Call by Whatsapp">{icon("chat")}WhatsApp</a>
+  <a class="mbar__book" href="#book">Make a booking</a>
+</nav>
 <main>
 {body}
 </main>
@@ -322,20 +368,27 @@ def build_home():
   <figure class="about__img" data-parallax><img src="img/m-about.webp" alt="" loading="lazy"></figure>
 </section>
 
-<section class="sect girls" id="girls" data-tone="noir">
-  <div class="row-head"><h2 class="h2">Our sweet girls</h2><a class="link" href="https://sweettouch.fr/girl">See all</a></div>
+<section class="sect girls" id="girls" data-tone="noir" data-girls>
+  <div class="row-head"><h2 class="h2">Our sweet girls</h2><a class="more" href="https://sweettouch.fr/girl">See all{icon("out")}</a></div>
   {girls(names)}
-  <p class="lead lead--wide">Relive the unique experience of sensual intimate massage with SweetTouch!</p>
+  <div class="girls__progress" aria-hidden="true"><span></span></div>
 </section>
 
 {marquee(SUB)}
 
-<section class="sect split" data-tone="noir">
-  <figure class="split__img" data-parallax><img src="img/m-outcall.webp" alt="" loading="lazy"></figure>
-  <div><h2 class="h2 h2--m">{e(inc_h)}</h2><p>{e(inc_p)}</p></div>
+<section class="pause" data-pause data-tone="noir" aria-label="SweetTouch">
+  <div class="pause__sticky">
+    <figure class="pause__frame"><img src="img/hero-2.webp" alt="" loading="lazy"></figure>
+    <p class="pause__line">Relive the unique experience of sensual intimate massage with SweetTouch!</p>
+  </div>
 </section>
 
-<section class="sect massages" id="massages" data-tone="wine">
+<section class="sect split split--overlap" data-tone="wine">
+  <figure class="split__img" data-parallax><img src="img/m-outcall.webp" alt="" loading="lazy"></figure>
+  <div class="split__copy"><h2 class="h2">{e(inc_h)}</h2><p>{e(inc_p)}</p></div>
+</section>
+
+<section class="sect massages" id="massages" data-tone="noir">
   <h2 class="h2">Massages</h2>
   {massages_tabs(rows)}
 </section>
@@ -364,7 +417,9 @@ def build_home():
   {rail(posts_html, "Blog")}
 </section>
 
-<section class="sect faq" data-tone="wine">
+{book(names, rows)}
+
+<section class="sect faq" data-tone="noir">
   <h2 class="h2">FAQ</h2>
   <div class="faq__list">{faq(fq)}</div>
 </section>
@@ -433,5 +488,6 @@ def build_tantra():
 
 
 (ROOT / "index.html").write_text(build_home(), encoding="utf-8")
-(ROOT / "tantra.html").write_text(build_tantra(), encoding="utf-8")
+# Booking lives on the home page; every "#book" link on other pages points there
+(ROOT / "tantra.html").write_text(build_tantra().replace('href="#book"', 'href="index.html#book"'), encoding="utf-8")
 print("built index.html, tantra.html")
