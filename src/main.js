@@ -68,17 +68,22 @@ const hx = $("[data-hx]");
 const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
 const after = $(".hx__after", hx), hint = $(".hx__hint", hx), ticker = $(".hx__ticker", hx);
 let heroIntro = () => {}, startVid = () => {};
-// Hero video starts downloading now, while the preloader draws, and the preloader waits for it. Phones get a
-// light vertical cut (540x960) that fills a portrait screen; wider screens get the 1280x720 one.
+// Hero video: the whole file is downloaded into memory while the preloader draws (no streaming, so nothing can
+// buffer mid-transition), then attached. Phones get a light vertical cut (540x960), wider screens 1280x720.
 const vid = $(".hx__vid video", svg);
 const useVid = !!vid && !reduce;
+let vidReady = Promise.resolve();
 if (useVid) {
   const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
-  vid.preload = "auto";
-  vid.src = narrow ? vid.dataset.srcM : vid.dataset.src;
+  const src = narrow ? vid.dataset.srcM : vid.dataset.src;
   if (narrow) vid.poster = "img/hero-poster-m.webp";
+  vid.preload = "auto";
+  const decoded = () => new Promise((r) => (vid.readyState >= 4 ? r() : vid.addEventListener("canplaythrough", r, { once: true })));
+  vidReady = fetch(src).then((res) => res.blob()).then((b) => { vid.src = URL.createObjectURL(b); return decoded(); })
+    .catch(() => { vid.src = src; return decoded(); }); // fetch blocked: fall back to streaming
 } else vid?.parentElement.remove();
-const vidReady = useVid ? new Promise((r) => (vid.readyState >= 3 ? r() : vid.addEventListener("canplaythrough", r, { once: true }))) : Promise.resolve();
+// Resolves once the video has really been playing for a moment (decoder warm, frames flowing)
+const vidRunning = () => (useVid ? new Promise((r) => { const tick = () => (vid.currentTime > 0.6 ? r() : requestAnimationFrame(tick)); tick(); }) : Promise.resolve());
 const flight = { x: 0, y: 0, s: 14 }; // zoom origin + final scale of the scroll fly-in
 
 /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
@@ -147,17 +152,17 @@ if (!reduce) {
   }, 4000);
   // No Ken Burns on the masked photos: a continuously transformed <image> is resampled with Chrome's fast filter (looked pixelated)
 
-  // Candle light follows the cursor; on touch it drifts in a 12 s circle
-  const pin = $(".hx__pin", hx), pos = { x: innerWidth / 2, y: innerHeight / 2 };
-  gsap.ticker.add(() => { pin.style.setProperty("--lx", `${pos.x}px`); pin.style.setProperty("--ly", `${pos.y}px`); });
+  // Candle light follows the cursor; on touch it drifts in a 12 s circle. It is a fixed-size disc moved only by
+  // transform (composited): the old full-screen gradient with a blend mode repainted the whole hero every frame.
+  const pin = $(".hx__pin", hx), light = $(".hx__light", hx);
+  gsap.set(light, { x: innerWidth / 2, y: innerHeight / 2 });
   if (fine) {
-    const qx = gsap.quickTo(pos, "x", { duration: 0.9, ease: "power3" }), qy = gsap.quickTo(pos, "y", { duration: 0.9, ease: "power3" });
+    const qx = gsap.quickTo(light, "x", { duration: 0.9, ease: "power3" }), qy = gsap.quickTo(light, "y", { duration: 0.9, ease: "power3" });
     pin.addEventListener("pointermove", (e) => { qx(e.clientX); qy(e.clientY); });
   } else {
     const a = { t: 0 };
-    gsap.to(a, { t: Math.PI * 2, duration: 12, repeat: -1, ease: "none", onUpdate: () => {
-      pos.x = innerWidth * (0.5 + Math.cos(a.t) * 0.3); pos.y = innerHeight * (0.5 + Math.sin(a.t) * 0.2);
-    } });
+    gsap.to(a, { t: Math.PI * 2, duration: 12, repeat: -1, ease: "none", onUpdate: () =>
+      gsap.set(light, { x: innerWidth * (0.5 + Math.cos(a.t) * 0.3), y: innerHeight * (0.5 + Math.sin(a.t) * 0.2) }) });
   }
 
   // Massage names roll under the word (home only)
@@ -234,7 +239,7 @@ if (reduce || !loader) {
   };
   const ready = Promise.race([
     Promise.all([document.fonts.ready, vidReady, new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = full.getAttribute("href"); })]),
-    new Promise((r) => setTimeout(r, 6000)), // slow network: go anyway, the poster sits under the video
+    new Promise((r) => setTimeout(r, 20000)), // very slow network: go anyway after 20 s, the poster sits under the video
   ]);
   // Start drawing only once the page has loaded and the browser delivers frames again: during load the first
   // paint/decode stalls rAF for ~0.6 s, which froze the line mid-way and then made it jump.
@@ -244,7 +249,9 @@ if (reduce || !loader) {
   });
   settled.then(() => gsap.timeline()
     .add(drawUp(2.6), 0)
-    .add(() => ready.then(() => { startVid(); prepLoad(); }).then(() => gsap.timeline({ onComplete: () => loader.remove() })
+    // Open only when the video is fully loaded and already running under the drawing, so the letters show it live
+    .add(() => ready.then(() => { prepLoad(); startVid(); return Promise.race([vidRunning(), new Promise((r) => setTimeout(r, 3000))]); })
+      .then(() => gsap.timeline({ onComplete: () => loader.remove() })
       // The figure's line flows on upward and off its own end (dash slides past), the backdrop dissolves into the
       // hero's same dark tone, and the hero letters pick the line up
       .to(".loader__line", { attr: { "stroke-dashoffset": -1 }, duration: 1.1, ease: "power2.in" })
