@@ -79,16 +79,11 @@ ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scrol
 const hx = $("[data-hx]");
 if (hx) {
   const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg);
-  const hero = { glyphs: [], fs: 0, dirty: true }; // canvas letter layout
   const after = $(".hx__after", hx);
-  // Video hero: the letters are painted on a canvas and the video is drawn through them (source-in). An SVG mask over a
-  // <video> is ignored by Safari (it showed the bare clip, no letters) and re-rasterised on the CPU every frame elsewhere.
-  const cv = $(".hx__cv", hx), ctx = cv?.getContext("2d"), vid = $(".hx__src", hx);
+  const vid = $(".hx__src", hx); // video pages: full-screen clip under solid letters
   const useVid = !!vid && !reduce;
   const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
-  const poster = new Image();
-  if (cv) poster.onload = () => { hero.dirty = true; };
-  if (cv) poster.src = narrow ? cv.dataset.posterM : cv.dataset.poster;
+  if (vid) vid.poster = narrow ? vid.dataset.posterM : vid.dataset.poster;
   if (useVid) { vid.src = narrow ? vid.dataset.srcM : vid.dataset.src; vid.play().catch(() => {}); }
 
   /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
@@ -114,14 +109,8 @@ if (hx) {
       t.setAttribute("y", first + i * lh);
       t.setAttribute("font-size", fs);
     }));
-    // Bodoni's hairlines are 1-2 px at this size and vanish over dark video frames; a thin same-colour stroke on the
-    // mask text (scales with the zoom, keeps the letterforms) gives every serif and diagonal enough photo to read
-    $(".hx__words--mask", svg).setAttribute("stroke-width", (fs * 0.014).toFixed(2));
-    // Canvas letters sit exactly where the SVG laid them out (per-glyph positions carry kerning and letter-spacing)
-    hero.fs = fs;
-    hero.glyphs = texts.flatMap((t) => [...t.textContent].map((ch, i) => { const p = t.getStartPositionOfChar(i); return [ch, p.x, p.y]; }));
-    if (hero.mask) hero.mask.key = ""; // glyphs moved: rebuild the mask
-    hero.dirty = true;
+    // Bodoni hairlines are 1-2 px at this size and vanish over the video: a thin same-colour stroke keeps every serif readable
+    groups.forEach((g) => g.setAttribute("stroke-width", (fs * 0.014).toFixed(2)));
   };
   layoutHero();
   const heroFont = document.fonts.load('900 100px "Bodoni Hero"').catch(() => {});
@@ -132,57 +121,6 @@ if (hx) {
   ScrollTrigger.config({ ignoreMobileResize: true });
   let lastW = innerWidth;
   addEventListener("resize", () => { if (innerWidth === lastW && !fine) return; lastW = innerWidth; layoutHero(); ScrollTrigger.refresh(); });
-
-  // Paint: the frame, cut to the glyphs (destination-in), then a warm 10% lift. Pixel ratio capped at 2 (sharp, half the fill).
-  // The word as a white mask on its own canvas (same pixel size as the hero canvas)
-  const paintMask = (m, W, H, d) => {
-    const key = `${hero.fs}|${hero.glyphs.length}|${cv.width}x${cv.height}`;
-    if (m.key === key) return; // unchanged since the last frame: video frames reuse the same mask
-    m.key = key;
-    if (m.width !== cv.width || m.height !== cv.height) { m.width = cv.width; m.height = cv.height; }
-    const c = m.getContext("2d");
-    c.setTransform(d, 0, 0, d, 0, 0);
-    c.clearRect(0, 0, W, H);
-    c.font = `900 ${hero.fs}px "Bodoni Hero"`;
-    c.fillStyle = c.strokeStyle = "#fff";
-    c.lineWidth = hero.fs * 0.014; // Bodoni hairlines are 1-2 px: a thin stroke keeps every serif readable over dark frames
-    c.lineJoin = "round";
-    for (const [ch, x, y] of hero.glyphs) { c.fillText(ch, x, y); c.strokeText(ch, x, y); }
-  };
-  const paintHero = () => {
-    const W = innerWidth, H = document.documentElement.clientHeight || innerHeight, d = Math.min(devicePixelRatio || 1, 2);
-    if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
-    ctx.setTransform(d, 0, 0, d, 0, 0);
-    ctx.globalCompositeOperation = "source-over";
-    ctx.clearRect(0, 0, W, H);
-    const src = useVid && vid.readyState >= 2 ? vid : poster.naturalWidth ? poster : null;
-    if (!src || !hero.fs) return;
-    // Frame first with plain source-over, then cut it to the glyphs (destination-in). The composite op is applied to the
-    // text, never to the video: iOS Safari ignores composite modes when drawing <video> frames, which showed the bare clip.
-    const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight, sc = Math.max(W / sw, H / sh);
-    ctx.drawImage(src, (W - sw * sc) / 2, (H - sh * sc) / 2, sw * sc, sh * sc);
-    // destination-in per glyph would erase the earlier glyphs, so the whole word is one mask canvas applied once
-    const mask = hero.mask || (hero.mask = document.createElement("canvas"));
-    paintMask(mask, W, H, d);
-    ctx.save();
-    ctx.globalCompositeOperation = "destination-in";
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(mask, 0, 0);
-    ctx.restore();
-    ctx.setTransform(d, 0, 0, d, 0, 0);
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.fillStyle = "rgba(242, 179, 94, 0.1)";
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalCompositeOperation = "source-over";
-  };
-  if (cv) {
-    // Repaint only when something changed: a new video frame (requestVideoFrameCallback), layout or the poster
-    const rvfc = useVid && "requestVideoFrameCallback" in vid;
-    if (rvfc) { const onFrame = () => { hero.dirty = true; vid.requestVideoFrameCallback(onFrame); }; vid.requestVideoFrameCallback(onFrame); }
-    gsap.ticker.add(() => {
-      if (hero.dirty || (useVid && !rvfc && !vid.paused)) { hero.dirty = false; paintHero(); }
-    });
-  }
 
   if (!reduce) {
     // Frames cross-dissolve inside the letters every 4 s

@@ -74,7 +74,7 @@ def services(block):
 def mcard(name, prices):
     """Service card; only services with a page of their own (Tantra) are links."""
     dl = "".join(f"<div><dt>{e(d)}</dt><dd>{p} €</dd></div>" for d, p in prices)
-    inner = (f'<figure><img src="img/m-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
+    inner = (f'<figure><img src="img/o-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
              f'<h3 class="card__title">{e(name)}</h3><dl class="card__prices">{dl}</dl>')
     return f'<a class="card card--m" href="tantra.html">{inner}</a>' if name == "Tantra Massage" else f'<div class="card card--m">{inner}</div>'
 
@@ -283,14 +283,11 @@ def footer():
 def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
     """Vector hero: the word is an SVG mask over full-resolution photos, so scaling it stays sharp.
     main.js sizes the viewBox to the viewport and lays out the lines (fs = font size as share of width, desktop/mobile).
-    video: looped clip inside the letters; imgs[0] stays under it as the poster while it loads."""
+    video: looped full-screen clip under solid letters; imgs[0] is its poster while it loads."""
     texts = "".join(f'<text text-anchor="middle">{e(w)}</text>' for w in words)
-    # Video pages paint the letters on a canvas (video drawn through the glyphs, see main.js): an SVG mask over a
-    # <video> is ignored by Safari and re-rasterised on the CPU every frame elsewhere
-    vid = (f'<video class="hx__src" data-src="video/{video}.mp4" data-src-m="video/{video}-m.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>'
-           f'<canvas class="hx__cv" data-poster="img/{imgs[0]}.webp" data-poster-m="img/{imgs[0]}-m.webp" aria-hidden="true"></canvas>') if video else ""
+    vid = f'<video class="hx__src" data-src="video/{video}.mp4" data-src-m="video/{video}-m.mp4" data-poster="img/{imgs[0]}.webp" data-poster-m="img/{imgs[0]}-m.webp" muted loop playsinline preload="none" aria-hidden="true"></video>' if video else ""
     images = "".join(f'<image class="hx__img{" is-on" if i == 0 else ""}" href="img/{s}.webp" preserveAspectRatio="xMidYMid slice"/>' for i, s in enumerate(imgs))
-    return f'''<section class="hx {cls}" data-hx>
+    return f'''<section class="hx {cls}{" hx--video" if video else ""}" data-hx>
   <div class="hx__pin">
     <h1 class="sr-only">{e(label)}</h1>
     {vid}

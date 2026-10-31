@@ -152,9 +152,11 @@ main { position: relative; z-index: 1; }
 .hx__img { opacity: 0; transition: opacity 1.4s var(--ease); }
 .hx__img.is-on { opacity: 1; }
 .hx__cv { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
-.hx__src { position: absolute; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; } /* decode source for the canvas */
+.hx__src { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hx__words text { font-family: "Bodoni Hero", var(--serif); font-weight: 900; letter-spacing: -0.045em; }
 .hx__shade { display: none; }
+.hx--video .hx__shade { display: block; position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgba(12, 3, 5, 0.42) 55%, rgba(12, 3, 5, 0.78)); }
+.hx--video .hx__words--edge { fill: var(--chair); stroke: var(--chair); stroke-linejoin: round; }
 .hx__after { position: absolute; z-index: 4; left: var(--pad); right: var(--pad); bottom: 72px; display: grid; gap: 22px; justify-items: start; max-width: 560px; }
 .hx__paris { font: italic 400 clamp(56px, 8vw, 120px)/0.85 var(--serif); letter-spacing: -0.03em; }
 .hx__intro { font-size: 16px; line-height: 1.6; opacity: 0.86; }
@@ -171,6 +173,8 @@ main { position: relative; z-index: 1; }
 .sect { padding: calc(var(--gap) / 2) var(--pad); position: relative; } /* halves: two neighbouring sections add up to one --gap */
 .row-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 32px; }
 .sect > .h2 { margin-bottom: 40px; }
+#massages { padding-top: clamp(88px, 9vw, 150px); }
+#massages > .h2 { text-align: center; margin-bottom: clamp(40px, 4.5vw, 72px); }
 
 .about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); gap: clamp(32px, 6vw, 96px); align-items: center; }
 .about__text { display: grid; gap: 32px; align-content: start; }
@@ -223,6 +227,7 @@ main { position: relative; z-index: 1; }
   .card:hover img { transform: scale(1.04); filter: none; }
 }
 .card__title { font: italic 400 clamp(22px, 2vw, 28px)/1.1 var(--serif); }
+.card--m .card__title { font-size: clamp(28px, 2.7vw, 40px); }
 .card--g { grid-template-columns: 1fr auto; align-items: baseline; }
 .card--g figure { grid-column: 1 / -1; }
 .card__vip { font-size: 13px; color: var(--or); }
@@ -380,6 +385,7 @@ main { position: relative; z-index: 1; }
   .cgrid--m, .cgrid--g { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cgrid .card figure { height: auto; }
   .cgrid .card__title { font-size: 20px; }
+  .cgrid .card--m .card__title { font-size: 23px; }
   .cgrid .card__prices { grid-template-columns: repeat(2, auto); gap: 4px 14px; }
   .cgrid .card__prices dd { font-size: 17px; }
   .card figure { height: 100vw; }
