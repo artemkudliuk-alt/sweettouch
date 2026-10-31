@@ -371,70 +371,20 @@ if (stage) {
 
 /* ---------- Booking: choices -> live summary, price and a prefilled WhatsApp message ---------- */
 const bookEl = $("[data-book]");
-// Massage picker: a styled listbox built from the native select's optgroups; choosing writes back to the select
-// and fires "change", so the booking logic below stays unaware of it
-const buildPicker = (sel) => {
-  const wrap = sel.parentElement, chevron = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-  const from = (o) => `from ${Math.min(...JSON.parse(o.dataset.prices).map((p) => +p[1]))} €`;
-  const btn = Object.assign(document.createElement("button"), { type: "button", className: "msel__btn" });
-  btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-label", "Massage");
-  btn.innerHTML = `<span></span><small></small>${chevron}`;
-  const list = Object.assign(document.createElement("div"), { className: "msel__list", hidden: true });
-  list.setAttribute("role", "listbox"); list.setAttribute("data-lenis-prevent", "");
-  $$("optgroup", sel).forEach((g) => {
-    const h = Object.assign(document.createElement("p"), { className: "msel__group", textContent: g.label });
-    list.append(h);
-    $$("option", g).forEach((o) => {
-      const b = Object.assign(document.createElement("button"), { type: "button", className: "msel__opt" });
-      b.setAttribute("role", "option"); b.dataset.value = o.value;
-      b.innerHTML = "<span></span><small></small>";
-      b.firstChild.textContent = o.value; b.lastChild.textContent = from(o);
-      list.append(b);
-    });
-  });
-  wrap.classList.add("is-custom"); wrap.append(btn, list);
-  const opts = $$(".msel__opt", list);
-  const paint = () => {
-    btn.firstChild.textContent = sel.value; btn.children[1].textContent = from(sel.selectedOptions[0]);
-    opts.forEach((b) => b.setAttribute("aria-selected", b.dataset.value === sel.value));
-  };
-  const open = (yes) => {
-    if (yes === !list.hidden) return;
-    btn.setAttribute("aria-expanded", yes);
-    if (yes) {
-      list.hidden = false;
-      const cur = opts.find((b) => b.dataset.value === sel.value);
-      list.scrollTop = cur.offsetTop - list.clientHeight / 2 + cur.offsetHeight / 2;
-      if (!reduce) gsap.fromTo(list, { opacity: 0, y: -10, clipPath: "inset(0% 0% 100% 0% round 22px)" },
-        { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0% round 22px)", duration: 0.55, ease: "expo.out" });
-      cur.focus({ preventScroll: true });
-    } else if (reduce) list.hidden = true;
-    else gsap.to(list, { opacity: 0, y: -6, duration: 0.25, ease: "power2.in", onComplete: () => { list.hidden = true; } });
-  };
-  btn.addEventListener("click", () => open(list.hidden));
-  list.addEventListener("click", (ev) => {
-    const b = ev.target.closest(".msel__opt");
-    if (!b) return;
-    sel.value = b.dataset.value;
-    sel.dispatchEvent(new Event("change", { bubbles: true }));
-    paint(); open(false); btn.focus();
-  });
-  list.addEventListener("keydown", (ev) => {
-    const i = opts.indexOf(document.activeElement);
-    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); opts[Math.max(0, Math.min(opts.length - 1, i + (ev.key === "ArrowDown" ? 1 : -1)))].focus(); }
-    if (ev.key === "Escape" || ev.key === "Tab") { open(false); if (ev.key === "Escape") btn.focus(); }
-  });
-  btn.addEventListener("keydown", (ev) => { if (ev.key === "ArrowDown") { ev.preventDefault(); open(true); } });
-  document.addEventListener("pointerdown", (ev) => { if (!wrap.contains(ev.target)) open(false); });
-  paint();
-};
 if (bookEl) {
-  buildPicker($("select", bookEl));
-  const sel = $("select", bookEl), durs = $("[data-durs]", bookEl), wa = $("[data-wa]", bookEl), photo = $("[data-book-photo]", bookEl);
+  const durs = $("[data-durs]", bookEl), wa = $("[data-wa]", bookEl), photo = $("[data-book-photo]", bookEl), profile = $("[data-book-profile]", bookEl);
+  const picks = $("[data-picks]", bookEl), allBtn = $("[data-picks-all]", bookEl), label = allBtn.textContent;
+  const massage = () => $("input[name=massage]:checked", bookEl);
   const sum = (k, v) => { $(`[data-sum="${k}"]`, bookEl).textContent = v; };
+  const showAll = (open) => {
+    picks.classList.toggle("is-open", open);
+    allBtn.textContent = open ? "Show less" : label;
+    ScrollTrigger.refresh();
+  };
+  allBtn.addEventListener("click", () => showAll(!picks.classList.contains("is-open")));
   const fillDurs = () => {
     const keep = $("input[name=dur]:checked", durs)?.value;
-    durs.replaceChildren(...JSON.parse(sel.selectedOptions[0].dataset.prices).map(([d, p]) => {
+    durs.replaceChildren(...JSON.parse(massage().dataset.prices).map(([d, p]) => {
       const l = document.createElement("label");
       l.className = "dur";
       l.innerHTML = `<input type="radio" name="dur"><span></span><b></b>`;
@@ -446,21 +396,30 @@ if (bookEl) {
     }));
     ($$("input", durs).find((i) => i.value === keep) || $("input", durs)).checked = true;
   };
+  const setGirl = (input) => {
+    photo.src = `img/g-${input.dataset.slug}-0.webp`;
+    profile.href = `girl-${input.dataset.slug}.html`;
+  };
   const update = (animate) => {
-    const girl = $("input[name=girl]:checked", bookEl).value, d = $("input[name=dur]:checked", durs);
-    sum("girl", girl); sum("massage", sel.value); sum("dur", d.value); sum("price", d.dataset.price);
-    wa.href = `https://wa.me/33758963765?text=${encodeURIComponent(`Hello SweetTouch! I would like to book ${sel.value} (${d.value}) with ${girl}.`)}`;
+    const girl = $("input[name=girl]:checked", bookEl).value, m = massage().value, d = $("input[name=dur]:checked", durs);
+    sum("girl", girl); sum("massage", m); sum("dur", d.value); sum("price", d.dataset.price);
+    wa.href = `https://wa.me/33758963765?text=${encodeURIComponent(`Hello SweetTouch! I would like to book ${m} (${d.value}) with ${girl}.`)}`;
     if (animate && !reduce) gsap.from('[data-sum="price"]', { yPercent: 70, autoAlpha: 0, duration: 0.6, ease: "expo.out" });
   };
   bookEl.addEventListener("change", (ev) => {
-    if (ev.target === sel) fillDurs();
-    if (ev.target.name === "girl") {
-      const n = ev.target.dataset.photo;
-      photo.removeAttribute("srcset"); photo.src = `img/${n}.webp`;
-      if (!reduce) gsap.fromTo(photo, { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.8, ease: "expo.out" });
-    }
+    if (ev.target.name === "massage") fillDurs();
+    if (ev.target.name === "girl") setGirl(ev.target);
     update(true);
   });
+  // Profile pages link here with ?girl=<slug>: that masseuse comes preselected
+  const want = new URLSearchParams(location.search).get("girl");
+  const pre = want && $$("input[name=girl]", bookEl).find((i) => i.dataset.slug === want);
+  if (pre) {
+    pre.checked = true;
+    setGirl(pre);
+    if (pre.closest(".is-more")) showAll(true);
+  }
   fillDurs();
   update(false);
+  if (pre) addEventListener("load", () => (lenis ? lenis.scrollTo(bookEl.closest("section"), { immediate: true }) : bookEl.scrollIntoView()));
 }

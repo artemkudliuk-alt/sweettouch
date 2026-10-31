@@ -95,33 +95,38 @@ def massages_grid(rows, shown=6):
             f'<div class="cgrid__foot"><a class="btn btn--line" href="massages.html">All massages ({len(rows)}){icon("right")}</a></div>')
 
 
-def book(names, rows, note=""):
-    """Booking: pick a masseuse, a massage and a duration; the summary shows the price and hands the choice to
-    phone / WhatsApp (prefilled message) / Telegram. Prices come straight from the parsed service list."""
-    girls_html = "".join(f'<label class="pick"><input type="radio" name="girl" value="{e(n)}" data-photo="{gphoto(n)}"{" checked" if i == 0 else ""}>'
-                         f'<img src="img/{gphoto(n)}.webp" alt="" loading="lazy"><span>{e(n)}</span></label>' for i, n in enumerate(names))
-    opts = "".join(f'<optgroup label="{e(t)}">' + "".join(f'<option value="{e(n)}" data-prices="{e(json.dumps(p))}">{e(n)}</option>' for n, p in g) + "</optgroup>"
-                   for (t, _), g in zip(GROUPS, group_rows(rows)))
+def book(names, rows, note="", shown=12):
+    """Booking: pick a masseuse (all of them, small photos), a massage (buttons by group) and a duration; the summary
+    shows the price and hands the choice to phone / WhatsApp (prefilled message) / Telegram. Prices come straight from
+    the parsed service list. ?girl=<slug> preselects a masseuse (profile pages link here)."""
+    order = [GIRL[n] for n in names if n in GIRL] + [g for g in GIRLS if g["name"] not in names]
+    girls_html = "".join(f'<label class="pick{" is-more" if i >= shown else ""}"><input type="radio" name="girl" value="{e(g["name"])}" data-slug="{g["slug"]}"{" checked" if i == 0 else ""}>'
+                         f'<img src="img/g-{g["slug"]}-0.webp" alt="" sizes="96px" loading="lazy"><span>{e(g["name"])}</span></label>' for i, g in enumerate(order))
+    first = rows[0][0]
+    massages = "".join(f'<p class="chips__group">{e(t)}</p><div class="chips">' + "".join(
+        f'<label class="chip"><input type="radio" name="massage" value="{e(n)}" data-prices="{e(json.dumps(p))}"{" checked" if n == first else ""}>'
+        f'<span>{e(n)}</span><small>from {min(int(x) for _, x in p)} €</small></label>' for n, p in g) + "</div>"
+        for (t, _), g in zip(GROUPS, group_rows(rows)))
     return f'''<section class="sect book" id="book" data-tone="wine">
   <h2 class="h2 book__title">Book your massage</h2>
   {note}
   <div class="book__grid" data-book>
     <div class="book__steps">
-      <fieldset class="book__step"><legend><span>01</span>Masseuse</legend><div class="picks">{girls_html}</div></fieldset>
-      <fieldset class="book__step"><legend><span>02</span>Massage</legend>
-        <div class="book__select"><select name="massage" aria-label="Massage">{opts}</select></div></fieldset>
+      <fieldset class="book__step"><legend><span>01</span>Masseuse</legend><div class="picks" data-picks>{girls_html}</div>
+        <button class="more picks__all" type="button" data-picks-all>All masseuses ({len(order)})</button></fieldset>
+      <fieldset class="book__step"><legend><span>02</span>Massage</legend>{massages}</fieldset>
       <fieldset class="book__step"><legend><span>03</span>Duration</legend><div class="durs" data-durs></div></fieldset>
     </div>
     <aside class="book__card">
-      <figure class="book__photo"><img data-book-photo src="img/{gphoto(names[0])}.webp" alt="" sizes="(max-width: 720px) 86vw, 460px" loading="lazy" decoding="async"></figure>
+      <div class="book__who"><img data-book-photo src="img/g-{order[0]["slug"]}-0.webp" alt="" sizes="72px" loading="lazy" decoding="async">
+        <div><p data-sum="girl"></p><a class="link" data-book-profile href="girl-{order[0]["slug"]}.html">View profile</a></div></div>
       <dl class="book__sum">
-        <div><dt>Masseuse</dt><dd data-sum="girl"></dd></div>
         <div><dt>Massage</dt><dd data-sum="massage"></dd></div>
         <div><dt>Duration</dt><dd data-sum="dur"></dd></div>
       </dl>
       <p class="book__price"><span data-sum="price"></span> €</p>
       <div class="book__cta">
-        <a class="btn" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
+        <a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
         <a class="btn btn--line" data-wa href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
         <a class="btn btn--line" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a>
       </div>
@@ -173,9 +178,16 @@ def faq(block):
         if l.startswith("### "):
             q = l[4:]
         elif q:
-            out.append(f'<details class="faq__item"{"" if out else " open"}><summary>{e(q)}</summary><p>{e(l)}</p></details>')
+            out.append(f'<details class="faq__item" open><summary>{e(q)}</summary><p>{e(l)}</p></details>')
             q = None
-    return "\n".join(out)
+    # Answers are open from the start; the left column carries the contacts, so the block has no empty half
+    return f'''<section class="sect faq" data-tone="noir">
+  <div class="faq__side"><h2 class="h2">FAQ</h2><p class="lead">Call, write, we are waiting for you!</p>
+    <div class="faq__cta"><a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
+      <a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
+      <a class="btn btn--line" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a></div></div>
+  <div class="faq__list">{"".join(out)}</div>
+</section>'''
 
 
 ICON = {  # Lucide-style line icons
@@ -414,10 +426,7 @@ def build_home():
   {rail(posts_html, "Blog")}
 </section>
 
-<section class="sect faq" data-tone="noir">
-  <h2 class="h2">FAQ</h2>
-  <div class="faq__list">{faq(fq)}</div>
-</section>
+{faq(fq)}
 <aside class="promo" aria-label="Make a booking"><img src="img/teacher.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="#book">Make a booking</a></aside>
 <!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
 <section class="sect articles seo" data-tone="wine" data-seo>
@@ -477,10 +486,7 @@ def build_tantra():
   {girls(team)}
 </section>
 
-<section class="sect faq" data-tone="noir">
-  <h2 class="h2">FAQ</h2>
-  <div class="faq__list">{faq(fq)}</div>
-</section>
+{faq(fq)}
 
 <section class="sect split split--dark book" data-tone="wine">
   <h2 class="book__title">Tantra<br>Massage</h2>
@@ -538,7 +544,7 @@ def build_girl(g, rows):
     <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">SweetTouch</a> / <a href="masseuses.html">Masseuses</a> / <span>{e(n)}</span></nav>
     <h1 class="phead__h">{e(n)}</h1>
     <p class="prof__key"><span class="card__vip">{e(g["tier"].upper())}</span>{e(P["Age"])} y.o. · {e(P["Height"])} · {e(P["Nationality"])}</p>
-    <div class="prof__cta"><a class="btn btn--gold" href="#book">Book online</a><a class="btn btn--line" href="{e(wa)}">{icon("chat")}WhatsApp</a></div>
+    <div class="prof__cta"><a class="btn btn--gold" href="index.html?girl={g["slug"]}#book">Book with {e(n)}</a><a class="btn btn--line" href="{e(wa)}">{icon("chat")}WhatsApp</a></div>
     {about}
     <dl class="facts">{facts}</dl>
   </div>
