@@ -49,12 +49,9 @@ if (!reduce) {
   lenis = new Lenis({ lerp: 0.07, wheelMultiplier: 0.9, smoothWheel: true });
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
-  // lagSmoothing(0) (needed for Lenis sync) is switched on after the preloader: during page load the main thread
-  // stalls, and without smoothing the line drawing would jump ahead instead of continuing
-  lenis.stop(); // released by the preloader
+  gsap.ticker.lagSmoothing(0);
 }
 // In-page anchors, including "index.html#girls" while already on "/": scroll here instead of reloading the page
-// (a reload replayed the preloader and locked the scroll meanwhile)
 const page = (path) => path.replace(/\/index\.html$/, "/");
 document.addEventListener("click", (e) => {
   const a = e.target.closest("a[href*='#']");
@@ -78,126 +75,92 @@ if (langSw) {
 // Glass pill once off the top; always visible
 ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scroll() > 80) });
 
-// Always start at the top: the preloader replays on reload, and a restored scroll (Safari) made the hero fly by itself
-if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-scrollTo(0, 0);
-
 /* ---------- Hero ---------- */
 const hx = $("[data-hx]");
-const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg), full = imgs[0];
-const hero = { glyphs: [], fs: 0, k: 1, dirty: true }; // canvas letter layout + current zoom
-const after = $(".hx__after", hx), hint = $(".hx__hint", hx), ticker = $(".hx__ticker", hx);
-let heroIntro = () => {}, startVid = () => {}, heroPrewarm = () => Promise.resolve();
-// Video hero: the letters are painted on a canvas and the video is drawn through them (source-in). An SVG mask over a
-// <video> is ignored by Safari (it showed the bare clip, no letters) and re-rasterised on the CPU every frame elsewhere.
-const cv = $(".hx__cv", hx), ctx = cv?.getContext("2d"), vid = $(".hx__src", hx);
-const useVid = !!vid && !reduce;
-const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
-const poster = new Image();
-const posterReady = cv ? new Promise((r) => { poster.onload = poster.onerror = r; poster.src = narrow ? cv.dataset.posterM : cv.dataset.poster; }) : Promise.resolve();
-let vidReady = Promise.resolve();
-if (useVid) {
-  // Whole file into memory while the preloader draws (nothing can buffer mid-transition). iOS only decodes once play()
-  // is called, so "ready" = file in memory + the clip actually playing (or play refused, e.g. Low Power Mode: poster).
-  const src = narrow ? vid.dataset.srcM : vid.dataset.src;
-  const playing = () => new Promise((r) => {
-    vid.addEventListener("playing", r, { once: true });
-    vid.play().catch(r);
-    setTimeout(r, 4000);
-  });
-  vidReady = fetch(src).then((res) => { if (!res.ok) throw res.status; return res.blob(); })
-    .then((b) => { vid.src = URL.createObjectURL(b); return playing(); })
-    .catch(() => { vid.src = src; return playing(); });
-}
-// Resolves once frames are flowing (decoder warm), capped so a refused autoplay never holds the preloader
-const vidRunning = () => (useVid ? new Promise((r) => { const t0 = performance.now(); const tick = () => (vid.currentTime > 0.3 || performance.now() - t0 > 1500 ? r() : requestAnimationFrame(tick)); tick(); }) : Promise.resolve());
-const flight = { x: 0, y: 0, s: 14 }; // zoom origin + final scale of the scroll fly-in
+if (hx) {
+  const svg = $(".hx__svg", hx), imgs = $$(".hx__img", svg), groups = $$(".hx__words", svg);
+  const hero = { glyphs: [], fs: 0, dirty: true }; // canvas letter layout
+  const after = $(".hx__after", hx);
+  // Video hero: the letters are painted on a canvas and the video is drawn through them (source-in). An SVG mask over a
+  // <video> is ignored by Safari (it showed the bare clip, no letters) and re-rasterised on the CPU every frame elsewhere.
+  const cv = $(".hx__cv", hx), ctx = cv?.getContext("2d"), vid = $(".hx__src", hx);
+  const useVid = !!vid && !reduce;
+  const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
+  const poster = new Image();
+  if (cv) poster.onload = () => { hero.dirty = true; };
+  if (cv) poster.src = narrow ? cv.dataset.posterM : cv.dataset.poster;
+  if (useVid) { vid.src = narrow ? vid.dataset.srcM : vid.dataset.src; vid.play().catch(() => {}); }
 
-/* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
-const measure = document.createElement("canvas").getContext("2d");
-const layoutHero = () => {
-  // Layout viewport height: on iOS it is the small viewport and does not change while the browser bar slides
-  const W = innerWidth, H = document.documentElement.clientHeight || innerHeight;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  $$("rect, image, mask", svg).forEach((n) => { n.setAttribute("x", 0); n.setAttribute("y", 0); n.setAttribute("width", W); n.setAttribute("height", H); });
-  const texts = $$("text", $(".hx__words--edge", svg)), last = texts[texts.length - 1].textContent, navH = W < 720 ? 66 : 96;
-  // Real glyph metrics of the loaded face (measured at 100px, scale linearly): centre the visible caps, not the em boxes
-  measure.font = `900 100px "Bodoni Hero"`;
-  const capR = (measure.measureText("E").actualBoundingBoxAscent || 70) / 100;
-  const descR = /[gjpqy]/.test(last) ? (measure.measureText("g").actualBoundingBoxDescent || 20) / 100 : 0;
-  // Width sets the size, but on short screens the word + ticker + "Scroll" hint must still fit under the header
-  const bottomZone = 140; // ticker line + "Scroll" hint live below the word
-  const heightFit = (H - navH - bottomZone - 24) / (capR + 0.82 * (texts.length - 1) + descR);
-  const fs = Math.min(W * +(W < 720 ? svg.dataset.fsM : svg.dataset.fs), 420, heightFit), lh = fs * 0.82;
-  const cap = capR * fs, desc = descR * fs, block = cap + (texts.length - 1) * lh;
-  const first = navH + (H - navH - bottomZone) / 2 - (block + desc) / 2 + cap; // centre between header and the bottom zone
-  groups.forEach((g) => $$("text", g).forEach((t, i) => {
-    t.setAttribute("x", W / 2);
-    t.setAttribute("y", first + i * lh);
-    t.setAttribute("font-size", fs);
-  }));
-  // Bodoni's hairlines are 1-2 px at this size and vanish over dark video frames; a thin same-colour stroke on the
-  // mask text (scales with the zoom, keeps the letterforms) gives every serif and diagonal enough photo to read
-  $(".hx__words--mask", svg).setAttribute("stroke-width", (fs * 0.014).toFixed(2));
-  hx.style.setProperty("--tick-top", `${first + (texts.length - 1) * lh + desc + 14}px`);
-  // Canvas letters sit exactly where the SVG laid them out (per-glyph positions carry kerning and letter-spacing)
-  hero.fs = fs;
-  hero.glyphs = texts.flatMap((t) => [...t.textContent].map((ch, i) => { const p = t.getStartPositionOfChar(i); return [ch, p.x, p.y]; }));
-  if (hero.mask) hero.mask.key = ""; // glyphs moved: rebuild the mask
-  hero.dirty = true;
-  Object.assign(flight, { x: W / 2, y: H / 2, s: 14 });
-  const t = texts.find((n) => n.textContent.includes("r"));
-  if (!t) return;
-  // Fly-through target: the round ball terminal of the first "r". Measured once on the hero face (static file, so the
-  // numbers never change): centre 0.43 em right of the glyph start and 0.333 em above the baseline, radius 0.105 em.
-  // Not measured at runtime: Safari adds fingerprinting noise to canvas readback, which broke the old pixel scan.
-  const box = t.getExtentOfChar(t.textContent.indexOf("r"));
-  const x = box.x + 0.43 * fs, y = +t.getAttribute("y") - 0.333 * fs, r = 0.105 * fs;
-  // Scale at which the ball covers every corner of the screen
-  const s = Math.max(...[[0, 0], [W, 0], [0, H], [W, H]].map(([px, py]) => Math.hypot(px - x, py - y))) / r;
-  if (!(s > 3 && Number.isFinite(s))) return; // implausible geometry: keep the centred default flight
-  Object.assign(flight, { x, y, s: s * 1.1 });
-};
-layoutHero();
-const heroFont = document.fonts.load('900 100px "Bodoni Hero"').catch(() => {});
-heroFont.then(layoutHero); // metrics are exact only once the hero face is in
-// Phones fire "resize" whenever the browser bar slides in or out during a swipe: re-laying out the hero and every
-// trigger on that made the page jump. Only a real width change (rotation, desktop resize) re-lays out.
-ScrollTrigger.config({ ignoreMobileResize: true });
-let lastW = innerWidth;
-addEventListener("resize", () => { if (innerWidth === lastW && !fine) return; lastW = innerWidth; layoutHero(); ScrollTrigger.refresh(); });
+  /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
+  const measure = document.createElement("canvas").getContext("2d");
+  const layoutHero = () => {
+    // Layout viewport height: on iOS it is the small viewport and does not change while the browser bar slides
+    const W = innerWidth, H = document.documentElement.clientHeight || innerHeight;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    $$("rect, image, mask", svg).forEach((n) => { n.setAttribute("x", 0); n.setAttribute("y", 0); n.setAttribute("width", W); n.setAttribute("height", H); });
+    const texts = $$("text", $(".hx__words--edge", svg)), last = texts[texts.length - 1].textContent, navH = W < 720 ? 66 : 96;
+    const bottomZone = after ? H - after.offsetTop + 40 : 48; // buttons + intro live below the word
+    // Real glyph metrics of the loaded face (measured at 100px, scale linearly): centre the visible caps, not the em boxes
+    measure.font = `900 100px "Bodoni Hero"`;
+    const capR = (measure.measureText("E").actualBoundingBoxAscent || 70) / 100;
+    const descR = /[gjpqy]/.test(last) ? (measure.measureText("g").actualBoundingBoxDescent || 20) / 100 : 0;
+    // Width sets the size, but on short screens the word must still fit between the header and the copy below it
+    const heightFit = (H - navH - bottomZone - 24) / (capR + 0.82 * (texts.length - 1) + descR);
+    const fs = Math.min(W * +(W < 720 ? svg.dataset.fsM : svg.dataset.fs), 420, heightFit), lh = fs * 0.82;
+    const cap = capR * fs, desc = descR * fs, block = cap + (texts.length - 1) * lh;
+    const first = navH + (H - navH - bottomZone) / 2 - (block + desc) / 2 + cap; // centre between header and the bottom zone
+    groups.forEach((g) => $$("text", g).forEach((t, i) => {
+      t.setAttribute("x", W / 2);
+      t.setAttribute("y", first + i * lh);
+      t.setAttribute("font-size", fs);
+    }));
+    // Bodoni's hairlines are 1-2 px at this size and vanish over dark video frames; a thin same-colour stroke on the
+    // mask text (scales with the zoom, keeps the letterforms) gives every serif and diagonal enough photo to read
+    $(".hx__words--mask", svg).setAttribute("stroke-width", (fs * 0.014).toFixed(2));
+    // Canvas letters sit exactly where the SVG laid them out (per-glyph positions carry kerning and letter-spacing)
+    hero.fs = fs;
+    hero.glyphs = texts.flatMap((t) => [...t.textContent].map((ch, i) => { const p = t.getStartPositionOfChar(i); return [ch, p.x, p.y]; }));
+    if (hero.mask) hero.mask.key = ""; // glyphs moved: rebuild the mask
+    hero.dirty = true;
+  };
+  layoutHero();
+  const heroFont = document.fonts.load('900 100px "Bodoni Hero"').catch(() => {});
+  heroFont.then(layoutHero); // metrics are exact only once the hero face is in
+  document.fonts.ready.then(layoutHero); // the copy under the word grows once its own fonts arrive
+  // Phones fire "resize" whenever the browser bar slides in or out during a swipe: re-laying out the hero and every
+  // trigger on that made the page jump. Only a real width change (rotation, desktop resize) re-lays out.
+  ScrollTrigger.config({ ignoreMobileResize: true });
+  let lastW = innerWidth;
+  addEventListener("resize", () => { if (innerWidth === lastW && !fine) return; lastW = innerWidth; layoutHero(); ScrollTrigger.refresh(); });
 
-// Paint: glyphs (zoomed about the "r" ball) in white, then the video/poster drawn only where they are (source-in), then a
-// warm 10% lift. Once the ball covers the screen the frame is drawn whole. Pixel ratio capped at 2 (sharp, half the fill).
-// The zoomed word as a white mask on its own canvas (same pixel size as the hero canvas)
-const paintMask = (m, W, H, d) => {
-  const key = `${hero.k}|${hero.fs}|${hero.glyphs.length}|${cv.width}x${cv.height}`;
-  if (m.key === key) return; // unchanged since the last frame: video frames reuse the same mask
-  m.key = key;
-  if (m.width !== cv.width || m.height !== cv.height) { m.width = cv.width; m.height = cv.height; }
-  const c = m.getContext("2d");
-  c.setTransform(d, 0, 0, d, 0, 0);
-  c.clearRect(0, 0, W, H);
-  c.translate(flight.x, flight.y); c.scale(hero.k, hero.k); c.translate(-flight.x, -flight.y);
-  c.font = `900 ${hero.fs}px "Bodoni Hero"`;
-  c.fillStyle = c.strokeStyle = "#fff";
-  c.lineWidth = hero.fs * 0.014; // Bodoni hairlines are 1-2 px: a thin stroke keeps every serif readable over dark frames
-  c.lineJoin = "round";
-  for (const [ch, x, y] of hero.glyphs) { c.fillText(ch, x, y); c.strokeText(ch, x, y); }
-};
-const paintHero = () => {
-  const W = innerWidth, H = document.documentElement.clientHeight || innerHeight, d = Math.min(devicePixelRatio || 1, 2);
-  if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
-  ctx.setTransform(d, 0, 0, d, 0, 0);
-  ctx.globalCompositeOperation = "source-over";
-  ctx.clearRect(0, 0, W, H);
-  const src = useVid && vid.readyState >= 2 ? vid : poster.naturalWidth ? poster : null;
-  if (!src || !hero.fs) return;
-  // Frame first with plain source-over, then cut it to the glyphs (destination-in). The composite op is applied to the
-  // text, never to the video: iOS Safari ignores composite modes when drawing <video> frames, which showed the bare clip.
-  const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight, sc = Math.max(W / sw, H / sh);
-  ctx.drawImage(src, (W - sw * sc) / 2, (H - sh * sc) / 2, sw * sc, sh * sc);
-  if (hero.k < flight.s / 1.1) {
+  // Paint: the frame, cut to the glyphs (destination-in), then a warm 10% lift. Pixel ratio capped at 2 (sharp, half the fill).
+  // The word as a white mask on its own canvas (same pixel size as the hero canvas)
+  const paintMask = (m, W, H, d) => {
+    const key = `${hero.fs}|${hero.glyphs.length}|${cv.width}x${cv.height}`;
+    if (m.key === key) return; // unchanged since the last frame: video frames reuse the same mask
+    m.key = key;
+    if (m.width !== cv.width || m.height !== cv.height) { m.width = cv.width; m.height = cv.height; }
+    const c = m.getContext("2d");
+    c.setTransform(d, 0, 0, d, 0, 0);
+    c.clearRect(0, 0, W, H);
+    c.font = `900 ${hero.fs}px "Bodoni Hero"`;
+    c.fillStyle = c.strokeStyle = "#fff";
+    c.lineWidth = hero.fs * 0.014; // Bodoni hairlines are 1-2 px: a thin stroke keeps every serif readable over dark frames
+    c.lineJoin = "round";
+    for (const [ch, x, y] of hero.glyphs) { c.fillText(ch, x, y); c.strokeText(ch, x, y); }
+  };
+  const paintHero = () => {
+    const W = innerWidth, H = document.documentElement.clientHeight || innerHeight, d = Math.min(devicePixelRatio || 1, 2);
+    if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.clearRect(0, 0, W, H);
+    const src = useVid && vid.readyState >= 2 ? vid : poster.naturalWidth ? poster : null;
+    if (!src || !hero.fs) return;
+    // Frame first with plain source-over, then cut it to the glyphs (destination-in). The composite op is applied to the
+    // text, never to the video: iOS Safari ignores composite modes when drawing <video> frames, which showed the bare clip.
+    const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight, sc = Math.max(W / sw, H / sh);
+    ctx.drawImage(src, (W - sw * sc) / 2, (H - sh * sc) / 2, sw * sc, sh * sc);
     // destination-in per glyph would erase the earlier glyphs, so the whole word is one mask canvas applied once
     const mask = hero.mask || (hero.mask = document.createElement("canvas"));
     paintMask(mask, W, H, d);
@@ -206,136 +169,35 @@ const paintHero = () => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(mask, 0, 0);
     ctx.restore();
-  }
-  ctx.setTransform(d, 0, 0, d, 0, 0);
-  ctx.globalCompositeOperation = "source-atop";
-  ctx.fillStyle = "rgba(242, 179, 94, 0.1)";
-  ctx.fillRect(0, 0, W, H);
-  ctx.globalCompositeOperation = "source-over";
-};
-if (cv) {
-  posterReady.then(() => { hero.dirty = true; });
-  // Repaint only when something changed: a new video frame (requestVideoFrameCallback), zoom, layout or the poster
-  const rvfc = useVid && "requestVideoFrameCallback" in vid;
-  if (rvfc) { const onFrame = () => { hero.dirty = true; vid.requestVideoFrameCallback(onFrame); }; vid.requestVideoFrameCallback(onFrame); }
-  gsap.ticker.add(() => {
-    if (hero.dirty || (useVid && !rvfc && !vid.paused)) { hero.dirty = false; paintHero(); }
-  });
-}
-
-if (!reduce) {
-  // Frames cross-dissolve inside the letters every 4 s
-  let cur = 0;
-  if (imgs.length > 1) setInterval(() => {
-    imgs[cur].classList.remove("is-on");
-    cur = (cur + 1) % imgs.length;
-    imgs[cur].classList.add("is-on");
-  }, 4000);
-  // No Ken Burns on the masked photos: a continuously transformed <image> is resampled with Chrome's fast filter (looked pixelated)
-
-  // Massage names roll under the word (home only)
-  if (ticker) {
-    const items = $$("li", ticker);
-    ticker.append(items[0].cloneNode(true)); // seamless wrap
-    let i = 0;
-    setInterval(() => {
-      i++;
-      gsap.to(ticker.children, { yPercent: -100 * i, duration: 0.9, ease: "expo.inOut", onComplete: () => {
-        if (i === items.length) { i = 0; gsap.set(ticker.children, { yPercent: 0 }); }
-      } });
-    }, 2200);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = "rgba(242, 179, 94, 0.1)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "source-over";
+  };
+  if (cv) {
+    // Repaint only when something changed: a new video frame (requestVideoFrameCallback), layout or the poster
+    const rvfc = useVid && "requestVideoFrameCallback" in vid;
+    if (rvfc) { const onFrame = () => { hero.dirty = true; vid.requestVideoFrameCallback(onFrame); }; vid.requestVideoFrameCallback(onFrame); }
+    gsap.ticker.add(() => {
+      if (hero.dirty || (useVid && !rvfc && !vid.paused)) { hero.dirty = false; paintHero(); }
+    });
   }
 
-  gsap.set(after.children, { autoAlpha: 0, y: 40 });
-  const fly = { z: 0 };
-  // The video plays the whole time the hero is on screen (also through the fly-in) and stops once it is scrolled
-  // away. It is started while the preloader still covers the page, so it is already running when the letters appear.
-  let vidOn = useVid, heroOn = true; // the clip is already playing (started while the preloader loads it)
-  const syncVid = () => {
-    if (!useVid) return;
-    const play = vidOn && heroOn;
-    if (play && vid.paused) vid.play().catch(() => {});
-    else if (!play && !vid.paused) vid.pause();
-  };
-  ScrollTrigger.create({ trigger: hx, start: "top bottom", end: "bottom top", onToggle: (s) => { heroOn = s.isActive; syncVid(); } });
-  const zoomTo = () => {
-    const k = flight.s ** fly.z;
-    gsap.set(groups, { scale: k, svgOrigin: `${flight.x} ${flight.y}` });
-    hero.k = k; hero.dirty = true;
-  };
-  startVid = () => { vidOn = true; syncVid(); };
-  zoomTo();
-  ScrollTrigger.addEventListener("refresh", zoomTo); // re-apply after resize re-layout
-  // Scroll: the letters (mask) grow until they cover the screen, the full frame takes over, then the copy arrives
-  gsap.timeline({ scrollTrigger: { trigger: hx, start: "top top", end: "bottom bottom", scrub: 0.8 } })
-    .to([hint, ticker].filter(Boolean), { autoAlpha: 0, duration: 0.1 }, 0)
-    // Constant-feeling flight: scale = s^z, so every scrolled step multiplies the zoom by the same factor
-    .to(fly, { z: 1, ease: "power1.in", duration: 0.6, onUpdate: zoomTo }, 0)
-    .set(".hx__mfull", { opacity: 1 }, 0.6) // the ball already fills the screen by now; this only seals the edges
-    .to(".hx__shade", { opacity: 1, duration: 0.25 }, 0.5)
-    .to(after.children, { autoAlpha: 1, y: 0, stagger: 0.06, duration: 0.2 }, 0.62);
+  if (!reduce) {
+    // Frames cross-dissolve inside the letters every 4 s
+    let cur = 0;
+    if (imgs.length > 1) setInterval(() => {
+      imgs[cur].classList.remove("is-on");
+      cur = (cur + 1) % imgs.length;
+      imgs[cur].classList.add("is-on");
+    }, 4000);
+    // No Ken Burns on the masked photos: a continuously transformed <image> is resampled with Chrome's fast filter (looked pixelated)
 
-  // Entrance continues the preloader's gold line: the letter outlines draw themselves, then the video fills
-  // the letters from the bottom up. Hidden from the start so nothing flashes before the hand-off.
-  const edge = $(".hx__words--edge", svg), fill = cv || $("g[mask]", svg), INK = "3000"; // > longest glyph outline in px
-  gsap.set(edge, { strokeDasharray: `0 ${INK}` });
-  gsap.set(fill, { clipPath: "inset(100% 0% 0% 0%)" });
-  heroIntro = () => gsap.timeline()
-    .to(edge, { strokeDasharray: `${INK} 0`, duration: 2, ease: "power2.inOut" }, 0)
-    .to(fill, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.6, ease: "expo.inOut" }, 1.1)
-    .to(edge, { opacity: 0, duration: 1.2, ease: "power2.out" }, 2.6); // the gold line only draws the letters in; at rest they are clean photo shapes
-  // Paint the full letters (mask + video + strokes) for two frames while the preloader still covers the screen, so
-  // their first rasterisation does not land on the first frame of the reveal
-  heroPrewarm = () => new Promise((r) => {
-    gsap.set(fill, { clipPath: "inset(0% 0% 0% 0%)" });
-    gsap.set(edge, { strokeDasharray: `${INK} 0` });
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      gsap.set(fill, { clipPath: "inset(100% 0% 0% 0%)" });
-      gsap.set(edge, { strokeDasharray: `0 ${INK}` });
-      r();
-    }));
-  });
-}
-
-/* ---------- Preloader: line draws the silhouette, then flows into the hero letters ---------- */
-const loader = $("[data-loader]");
-// Heavy work (trigger re-measure) runs while the drawing still covers the screen; the hand-off itself only flips flags
-const prepLoad = () => ScrollTrigger.refresh();
-const finishLoad = () => { document.body.classList.remove("is-loading"); gsap.ticker.lagSmoothing(0); lenis?.start(); };
-if (reduce || !loader || document.hidden) { // opened in a background tab: frames are throttled, nobody sees the drawing
-  loader?.remove();
-  prepLoad();
-  finishLoad();
-  startVid();
-} else {
-  // Every strand runs bottom -> top; a strand starts when the rising front reaches its lowest point and moves
-  // at the same speed as the front, so the whole contour climbs up the figure evenly.
-  const drawUp = (T) => {
-    const strands = $$(".loader__line", loader), ys = strands.flatMap((s) => [+s.dataset.y0, +s.dataset.y1]);
-    const bottom = Math.max(...ys), span = bottom - Math.min(...ys), tl = gsap.timeline();
-    strands.forEach((s) => tl.to(s, { attr: { "stroke-dashoffset": 0 }, ease: "none",
-      duration: Math.max(0.05, ((s.dataset.y0 - s.dataset.y1) / span) * T) }, ((bottom - s.dataset.y0) / span) * T));
-    return tl;
-  };
-  const ready = Promise.race([
-    Promise.all([document.fonts.ready, heroFont, vidReady, full ? new Promise((r) => { const i = new Image(); i.onload = i.onerror = r; i.src = full.getAttribute("href"); }) : posterReady]),
-    new Promise((r) => setTimeout(r, 9000)), // slow network: open anyway after 9 s, the poster stands in until the clip arrives
-  ]);
-  // Start drawing only once the page has loaded and the browser delivers frames again: during load the first
-  // paint/decode stalls rAF for ~0.6 s, which froze the line mid-way and then made it jump.
-  const settled = new Promise((r) => {
-    const go = () => requestAnimationFrame(() => requestAnimationFrame(r));
-    document.readyState === "complete" ? go() : addEventListener("load", go, { once: true });
-  });
-  settled.then(() => gsap.timeline()
-    .add(drawUp(2.6), 0)
-    // Open only when the video is fully loaded and already running under the drawing, so the letters show it live
-    .add(() => ready.then(() => { prepLoad(); startVid(); return Promise.race([vidRunning(), new Promise((r) => setTimeout(r, 3000))]); }).then(() => heroPrewarm())
-      .then(() => gsap.timeline({ onComplete: () => loader.remove() })
-      // The figure's line flows on upward and off its own end (dash slides past), the backdrop dissolves into the
-      // hero's same dark tone, and the hero letters pick the line up
-      .to(".loader__line", { attr: { "stroke-dashoffset": -1 }, duration: 1.1, ease: "power2.in" })
-      .to(loader, { autoAlpha: 0, duration: 0.9, ease: "power1.inOut", onStart: () => { finishLoad(); heroIntro(); } }, 0.5)), "+=0.7")); // hold the finished drawing
+    // The clip plays only while the hero is on screen
+    if (useVid) ScrollTrigger.create({ trigger: hx, start: "top bottom", end: "bottom top",
+      onToggle: (s) => (s.isActive ? vid.play().catch(() => {}) : vid.pause()) });
+  }
 }
 
 if (!reduce) {
@@ -351,14 +213,6 @@ if (!reduce) {
   $$("[data-parallax] img").forEach((img) => gsap.fromTo(img, { yPercent: -8 }, { yPercent: 0, ease: "none",
     scrollTrigger: { trigger: img.parentElement, start: "top bottom", end: "bottom top", scrub: true } }));
 
-  // Pause: the window opens to full screen while the photo settles, then the line rises word by word
-  $$("[data-pause]").forEach((sec) => {
-    const line = SplitText.create($(".pause__line", sec), { type: "words", mask: "words" });
-    gsap.timeline({ scrollTrigger: { trigger: sec, start: "top top", end: "bottom bottom", scrub: 1 } })
-      .fromTo($(".pause__frame", sec), { clipPath: innerWidth < 720 ? "inset(26% 18% 26% 18%)" : "inset(24% 34% 24% 34%)" }, { clipPath: "inset(0% 0% 0% 0%)", ease: "power2.inOut", duration: 1 }, 0)
-      .to($(".pause__frame img", sec), { scale: 1, ease: "power2.out", duration: 1 }, 0)
-      .from(line.words, { yPercent: 110, stagger: 0.04, duration: 0.4, ease: "power3.out" }, 0.45);
-  });
 }
 
 /* ---------- Tone journey: the page slowly sinks from red to black, and only twice opens to skin-light ----------
@@ -442,21 +296,6 @@ if (!reduce) {
       .from($("img", fig), { scale: 1.25, duration: 1.8, ease: "expo.out" }, 0.1);
   });
 
-  // Girls: on desktop the section pins and the rail travels sideways with the scroll; photos drift against it
-  const girlsSec = $("[data-girls]");
-  if (girlsSec) gsap.matchMedia().add("(min-width: 1024px) and (pointer: fine)", () => {
-    const track = $(".rail__track", girlsSec);
-    girlsSec.classList.add("is-pinned");
-    track.scrollLeft = 0;
-    const dist = () => track.scrollWidth - track.clientWidth;
-    const travel = gsap.to(track, { x: () => -dist(), ease: "none", scrollTrigger: { trigger: girlsSec, start: "top top", end: () => `+=${dist()}`,
-      pin: true, scrub: 1, anticipatePin: 1, invalidateOnRefresh: true, refreshPriority: 1 } }); // refresh first: its spacer shifts every trigger below
-    gsap.to($(".girls__progress span", girlsSec), { scaleX: 1, ease: "none", scrollTrigger: { trigger: girlsSec, start: "top top", end: () => `+=${dist()}`, scrub: true } });
-    $$(".card--g img", track).forEach((img) => gsap.fromTo(img, { xPercent: -7, scale: 1.16 }, { xPercent: 7, ease: "none",
-      scrollTrigger: { trigger: img.closest(".card"), containerAnimation: travel, start: "left right", end: "right left", scrub: true } }));
-    return () => girlsSec.classList.remove("is-pinned");
-  });
-
   // How it works: each step's gold rule draws left to right, then its outlined number rises
   $$(".step").forEach((st, i) => gsap.timeline({ scrollTrigger: { trigger: ".steps", start: "top 80%", once: true }, delay: i * 0.18 })
     .fromTo(st, { "--line-x": 0 }, { "--line-x": 1, duration: 1.2, ease: "expo.inOut" })
@@ -467,18 +306,6 @@ if (!reduce) {
     if (rail.closest("[hidden]")) return;
     gsap.from($$(".card", rail).slice(0, 6), { x: 120, autoAlpha: 0, duration: 1.2, ease: "expo.out", stagger: 0.07,
       scrollTrigger: { trigger: rail, start: "top 85%", once: true } });
-  });
-
-  // Marquee: two rows drift slowly in opposite ways; scrolling nudges them a little, then they settle back
-  $$("[data-marquee]").forEach((m) => {
-    const rows = $$(".marquee__track", m).map((t, i) =>
-      gsap.fromTo(t, { xPercent: i ? -50 : 0 }, { xPercent: i ? 0 : -50, duration: 240, ease: "none", repeat: -1, paused: true }));
-    // Only runs while on screen: the tracks are tens of thousands of px wide, raster work for nothing when hidden
-    ScrollTrigger.create({ trigger: m, start: "top bottom", end: "bottom top", onToggle: (s) => rows.forEach((r) => (s.isActive ? r.play() : r.pause())), onUpdate: (s) => {
-      const dir = s.direction || 1, boost = 1 + Math.min(Math.abs(s.getVelocity()) / 1500, 1);
-      rows.forEach((r) => gsap.to(r, { timeScale: boost * dir, duration: 0.6, overwrite: true,
-        onComplete: () => gsap.to(r, { timeScale: dir, duration: 1.6, ease: "power2.out" }) }));
-    } });
   });
 
 }
@@ -502,18 +329,6 @@ if (fine && !reduce) {
     b.addEventListener("pointerleave", () => { bx(0); by(0); });
   });
 }
-
-/* ---------- Tabs ---------- */
-$$(".tabs").forEach((list) => {
-  const tabs = $$("[data-tab]", list), panels = $$("[data-panel]", list.parentElement);
-  tabs.forEach((t) => t.addEventListener("click", () => {
-    tabs.forEach((x) => x.setAttribute("aria-selected", x === t));
-    panels.forEach((p) => (p.hidden = p.dataset.panel !== t.dataset.tab));
-    const shown = panels.find((p) => !p.hidden);
-    $(".rail__track", shown).scrollLeft = 0;
-    if (!reduce) gsap.from($$(".card", shown).slice(0, 5), { autoAlpha: 0, x: 60, stagger: 0.06, duration: 0.8, ease: "expo.out" });
-  }));
-});
 
 /* ---------- Rails: drag with inertia-free pointer scroll + buttons ---------- */
 $$("[data-rail]").forEach((rail) => {
@@ -540,56 +355,18 @@ $$("[data-rail]").forEach((rail) => {
   track.addEventListener("click", (e) => { if (moved) e.preventDefault(); }, true);
 });
 
-/* ---------- Stage: next frame opens in columns, alternating from top and bottom ---------- */
+/* ---------- Stage: a still block, the advantages beside one photo ---------- */
 const stage = $("[data-stage]");
-// Stage photos are CSS backgrounds (no native lazy loading): attach them only when the stage is ~2 screens away, so they
-// never compete with the hero video during the preloader
+// The photo is a CSS background (no native lazy loading): attach it only when the block is ~2 screens away, so it
+// never competes with the hero video on load
 if (stage) {
   const io = new IntersectionObserver(([en]) => {
     if (!en.isIntersecting) return;
-    $$(".stage__layer", stage).forEach((l) => l.style.setProperty("--img", `url(${l.dataset.img})`));
+    const l = $(".stage__layer", stage);
+    l.style.setProperty("--img", `url(${l.dataset.img})`);
     io.disconnect();
   }, { rootMargin: "200% 0px" });
   io.observe(stage);
-}
-if (stage && !reduce) {
-  const layers = $$(".stage__layer", stage), texts = $$(".stage__text", stage), segs = $$(".stage__bar span", stage);
-  const N = innerWidth < 720 ? 5 : 6;
-  layers.forEach((layer, i) => {
-    layer.style.zIndex = i;
-    if (!i) return layer.classList.add("is-base");
-    for (let c = 0; c < N; c++) {
-      // 0.05% overlap hides hairline seams between neighbouring columns
-      const l = Math.max(0, (c * 100) / N - 0.05), r = Math.max(0, 100 - ((c + 1) * 100) / N - 0.05);
-      const col = document.createElement("div");
-      col.className = "col";
-      col.style.clipPath = c % 2 ? `inset(0% ${r}% 100% ${l}%)` : `inset(100% ${r}% 0% ${l}%)`;
-      col.dataset.to = `inset(0% ${r}% 0% ${l}%)`;
-      layer.append(col);
-    }
-  });
-  const STEP = 1.5;
-  const tl = gsap.timeline({
-    // Each slide is a resting point: after a swipe the scroll settles on the nearest one instead of stopping mid-wipe
-    scrollTrigger: { trigger: stage, start: "top top", end: "bottom bottom", scrub: 0.6,
-      snap: { snapTo: "labels", duration: { min: 0.3, max: 0.8 }, delay: 0.06, ease: "power2.inOut", inertia: false } },
-    onUpdate() {
-      const p = this.progress() * segs.length;
-      segs.forEach((s, i) => s.style.setProperty("--p", gsap.utils.clamp(0, 1, p - i)));
-    },
-  });
-  tl.addLabel("s0", 0);
-  layers.slice(1).forEach((layer, k) => {
-    const at = k * STEP + 0.3;
-    tl.addLabel(`s${k + 1}`, at + 1.35); // columns (1 s + stagger) and the next text are fully in
-    tl.to($$(".col", layer), { clipPath: (j, el) => el.dataset.to, duration: 1, ease: "power2.inOut", stagger: { each: 0.06, from: "edges" } }, at)
-      .to(texts[k], { autoAlpha: 0, y: -24, duration: 0.3 }, at)
-      .fromTo(texts[k + 1], { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.4 }, at + 0.45);
-  });
-  tl.to({}, { duration: 0.4 });
-  tl.addLabel("end");
-} else if (stage) {
-  stage.classList.add("is-static");
 }
 
 /* ---------- Booking: choices -> live summary, price and a prefilled WhatsApp message ---------- */
@@ -678,8 +455,8 @@ if (bookEl) {
   bookEl.addEventListener("change", (ev) => {
     if (ev.target === sel) fillDurs();
     if (ev.target.name === "girl") {
-      const n = ev.target.value.toLowerCase();
-      photo.srcset = `img/${n}-800.webp 800w, img/${n}.webp 1200w`; photo.src = `img/${n}.webp`;
+      const n = ev.target.dataset.photo;
+      photo.removeAttribute("srcset"); photo.src = `img/${n}.webp`;
       if (!reduce) gsap.fromTo(photo, { autoAlpha: 0, scale: 1.06 }, { autoAlpha: 1, scale: 1, duration: 0.8, ease: "expo.out" });
     }
     update(true);
