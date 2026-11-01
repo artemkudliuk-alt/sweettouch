@@ -71,9 +71,17 @@ def services(block):
     return [r for r in rows if r[1]]
 
 
+def dur(d):
+    """'1h', '1hour', '2h' -> '1 hour', '2 hours'; '90min' -> '90 min' (the source mixes spellings)."""
+    m = re.fullmatch(r"(\d+)\s*(h|hours?|min)", d.strip(), re.I)
+    if not m: return d
+    n, u = m.groups()
+    return f"{n} min" if u.lower() == "min" else f"{n} hour{'s' if n != '1' else ''}"
+
+
 def mcard(name, prices):
     """Service card; only services with a page of their own (Tantra) are links."""
-    dl = "".join(f"<div><dt>{e(d)}</dt><dd>{p} €</dd></div>" for d, p in prices)
+    dl = "".join(f"<div><dt>{e(dur(d))}</dt><dd>{p} €</dd></div>" for d, p in prices)
     inner = (f'<figure><img src="img/o-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
              f'<h3 class="card__title">{e(name)}</h3><dl class="card__prices">{dl}</dl>')
     return f'<a class="card card--m" href="tantra.html">{inner}</a>' if name == "Tantra Massage" else f'<div class="card card--m">{inner}</div>'
@@ -138,9 +146,25 @@ def book(names, rows, note="", shown=12):
 </section>"""
 
 
+# Core massages first on catalog cards, so a card never opens with "Wife for rent"
+CORE = ["Tantra Massage", "Body to Body Massage", "Nuru Massage", "Erotic Massage", "Sensual Massage", "Oriental Massage",
+       "Thai Massage", "Deep tissue massage", "Shiatsu Massage", "Feet body massage"]
+
+
 def gcard(g):
+    """Catalog card: photo, name and tier, then the facts a client scans first and three of her massages."""
+    P = g["params"]
+    meta = " · ".join(x for x in (P.get("Age") and f'{P["Age"]} y.o.', P.get("Nationality"), P.get("Height", "").replace("cm", " cm")) if x)
+    cup = f'<span class="card__cup"> · Cup {e(P["Cup size"])}</span>' if P.get("Cup size") else ""
+    where = " · ".join(t for t, k in (("Incall", "incall"), ("Outcall", "outcall")) if g[k])
+    svc = sorted(g["services"], key=lambda x: CORE.index(x) if x in CORE else len(CORE))[:2]
+    more = len(g["services"]) - len(svc)
+    tags = "".join(f"<li>{e(x.replace(' Massage', '').replace(' massage', ''))}</li>" for x in svc) + (f'<li class="card__more">+{more}</li>' if more > 0 else "")
     return (f'<a class="card card--g" href="girl-{g["slug"]}.html"><figure><img src="img/g-{g["slug"]}-0.webp" alt="{e(g["name"])}" sizes="(max-width: 720px) 46vw, 18vw" loading="lazy"></figure>'
-            f'<span class="card__title">{e(g["name"])}</span><span class="card__vip">{e(g["tier"].upper())}</span></a>')
+            f'<span class="card__title">{e(g["name"])}</span><span class="card__vip">{e(g["tier"].upper())}</span>'
+            f'<span class="card__meta">{e(meta)}{cup}</span>'
+            + (f'<span class="card__where">{e(where)}</span>' if where else "")
+            + (f'<ul class="card__tags">{tags}</ul>' if svc else "") + '</a>')
 
 
 def girls(names):
@@ -155,7 +179,7 @@ def article(block, images):
         if sec:
             h, body = sec
             img = images.get(h)
-            fig = f'<figure class="chapter__img"><img src="img/m-{img}.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>' if img else ""
+            fig = f'<figure class="chapter__img"><img src="img/{img}.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>' if img else ""
             out.append(f'<details class="chapter"><summary><h2 class="chapter__title">{e(h)}</h2><span class="chapter__toggle" aria-hidden="true"></span></summary>'
                        f'<div class="chapter__grid">{fig}<div class="chapter__body">{"".join(body)}</div></div></details>')
 
@@ -404,12 +428,12 @@ def build_home():
 
 <section class="sect about" data-tone="wine">
   <div class="about__text"><h2 class="h2">About SweetTouch</h2><p class="lead">Relive the unique experience of sensual intimate massage with SweetTouch!</p><p class="about__p" data-highlight>{e(about)}</p></div>
-  <figure class="about__img" data-parallax><img src="img/m-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
+  <figure class="about__img" data-parallax><img src="img/z-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
 </section>
 
 <section class="stage is-static" data-stage data-tone="noir" aria-label="Why SweetTouch">
   <div class="stage__pin">
-    <div class="stage__media"><div class="stage__layer" data-img="/img/m-all-day.webp"></div></div>
+    <div class="stage__media"><div class="stage__layer" data-img="/img/z-all-day.webp"></div></div>
     <div class="stage__texts">{texts}</div>
   </div>
 </section>
@@ -427,12 +451,12 @@ def build_home():
 </section>
 
 {faq(fq)}
-<aside class="promo" aria-label="Make a booking"><img src="img/teacher.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="#book">Make a booking</a></aside>
+<aside class="promo" aria-label="Make a booking"><img src="img/z-promo.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="#book">Make a booking</a></aside>
 <!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
 <section class="sect articles seo" data-tone="wine" data-seo>
 <div class="seo__body">
-{article(art, {"What Is SweetTouch Erotic Massage? A Journey Beyond Relaxation": "sensual", "Our Exclusive Erotic Massage Services in Paris": "couple",
-               "Discover Our Special, One-of-a-Kind Offers!": "strawberry", "Meet Our Masseuses: The Heart of SweetTouch": "six-hands"})}
+{article(art, {"What Is SweetTouch Erotic Massage? A Journey Beyond Relaxation": "z-sensual", "Our Exclusive Erotic Massage Services in Paris": "z-couple",
+               "Discover Our Special, One-of-a-Kind Offers!": "z-strawberry", "Meet Our Masseuses: The Heart of SweetTouch": "z-six-hands"})}
 </div>
 <button class="more seo__toggle" type="button" data-seo-toggle aria-expanded="false">Show all</button>
 </section>
@@ -465,7 +489,7 @@ def build_tantra():
       <a class="btn" href="#book">Book online</a>
     </div>
     '''
-    body = f'''{hero(["Tantra"], "Tantra Massage", ["hx-tantra", "hero-2", "hx-candle"], after, "hx--short", (0.27, 0.27))}
+    body = f'''{hero(["Tantra"], "Tantra Massage", ["z-tantra-1", "z-tantra-2", "z-tantra-3"], after, "hx--short", (0.27, 0.27))}
 
 <section class="sect split split--dark" data-tone="wine">
   <div><h2 class="h2 h2--m">{e(art[0][3:])}</h2><p>{e(art[1])}</p></div>
@@ -478,7 +502,7 @@ def build_tantra():
 </section>
 
 <section class="sect articles" data-tone="wine">
-{article(art[2:], {"Erotic Origin of Tantra": "oriental", "Meet Tantric Massage in Paris": "candle"})}
+{article(art[2:], {"Erotic Origin of Tantra": "m-oriental", "Meet Tantric Massage in Paris": "m-candle"})}
 </section>
 
 <section class="sect girls" data-tone="noir">
@@ -532,8 +556,12 @@ def build_girl(g, rows):
     pics = "".join(f'<figure class="prof__pic"><img src="img/g-{g["slug"]}-{i}.webp" alt="{e(n)}" sizes="(max-width: 720px) 92vw, 46vw"{"" if i == 0 else " loading=\"lazy\""}></figure>'
                    for i in range(len(g["files"])))
     facts = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in P.items())
-    hours = "".join(f"<div><dt>{d}</dt><dd>{e(h)}</dd></div>" for d, h in g["hours"].items())
-    svc = "".join(f'<li><span>{e(x)}</span><b>from {min(int(p) for _, p in price[x])} €</b></li>' for x in g["services"] if x in price)
+    hrs = g["hours"]
+    hours = (f"<div><dt>Every day</dt><dd>{e(next(iter(hrs.values())))}</dd></div>" if hrs and len(set(hrs.values())) == 1
+             else "".join(f"<div><dt>{d}</dt><dd>{e(h)}</dd></div>" for d, h in hrs.items()))
+    items = [f'<li><span>{e(x)}</span><b>from {min(int(p) for _, p in price[x])} €</b></li>' for x in g["services"] if x in price]
+    svc = f'<ul class="svc">{"".join(items[:12])}</ul>' + (
+        f'<details class="svc-more"><summary class="btn btn--line">Show all {len(items)} massages</summary><ul class="svc">{"".join(items[12:])}</ul></details>' if len(items) > 12 else "")
     others = [x for x in GIRLS if x is not g][:5]
     wa = "https://wa.me/33758963765?text=" + quote(f"Hello SweetTouch! I would like to book a massage with {n}.")
     about = "".join(f'<p class="prof__about">{e(a)}</p>' for a in g["about"])
@@ -554,7 +582,7 @@ def build_girl(g, rows):
     {locs}</div>
   <div><h2 class="h2 h2--m">Working hours</h2><dl class="facts facts--hours">{hours}</dl></div>
 </section>
-<section class="sect" data-tone="noir"><h2 class="h2 h2--m">{e(n)} provides</h2><ul class="svc">{svc}</ul></section>
+<section class="sect" data-tone="noir"><h2 class="h2 h2--m">{e(n)} provides</h2>{svc}</section>
 <section class="sect girls" data-tone="wine"><h2 class="h2 h2--m">Other masseuses</h2>
   <div class="cgrid cgrid--g">{"".join(gcard(x) for x in others)}</div>
   <div class="cgrid__foot"><a class="btn btn--line" href="masseuses.html">All masseuses ({len(GIRLS)}){icon("right")}</a></div></section>
