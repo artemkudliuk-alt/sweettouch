@@ -66,11 +66,11 @@ document.addEventListener("click", (e) => {
 });
 
 // Language switcher (<details>): closes on a click elsewhere or Escape
-const langSw = $("[data-lang]");
-if (langSw) {
-  document.addEventListener("pointerdown", (ev) => { if (langSw.open && !langSw.contains(ev.target)) langSw.open = false; });
-  langSw.addEventListener("keydown", (ev) => { if (ev.key === "Escape") { langSw.open = false; $("summary", langSw).focus(); } });
-}
+// Dropdowns on <details> (languages, booking): close on an outside press or Escape
+$$("[data-lang], .dd").forEach((d) => {
+  document.addEventListener("pointerdown", (ev) => { if (d.open && !d.contains(ev.target)) d.open = false; });
+  d.addEventListener("keydown", (ev) => { if (ev.key === "Escape") { d.open = false; $("summary", d).focus(); } });
+});
 
 // Glass pill once off the top; always visible
 ScrollTrigger.create({ onUpdate: (s) => nav.classList.toggle("is-solid", s.scroll() > 80) });
@@ -178,7 +178,7 @@ const buildTones = () => {
 buildTones();
 ScrollTrigger.create({ start: 0, end: () => ScrollTrigger.maxScroll(window), animation: toneTl, scrub: reduce ? true : 0.8 });
 ScrollTrigger.addEventListener("refreshInit", buildTones); // layout changed (resize, accordion, fonts): re-place transitions
-$$("details").forEach((d) => d.addEventListener("toggle", () => ScrollTrigger.refresh()));
+$$("details:not(.dd)").forEach((d) => d.addEventListener("toggle", () => ScrollTrigger.refresh()));
 // SEO block: folded to a short preview; "Show all" opens the full list of chapters
 $$("[data-seo]").forEach((seo) => {
   const btn = $("[data-seo-toggle]", seo);
@@ -310,22 +310,15 @@ if (stage) {
 /* ---------- Booking: choices -> live summary, price and a prefilled WhatsApp message ---------- */
 const bookEl = $("[data-book]");
 if (bookEl) {
-  const durs = $("[data-durs]", bookEl), wa = $("[data-wa]", bookEl), photo = $("[data-book-photo]", bookEl), profile = $("[data-book-profile]", bookEl);
-  const picks = $("[data-picks]", bookEl), allBtn = $("[data-picks-all]", bookEl), label = allBtn.textContent;
+  const durs = $("[data-durs]", bookEl), wa = $("[data-wa]", bookEl), photos = $$("[data-book-photo]", bookEl), profile = $("[data-book-profile]", bookEl);
   const massage = () => $("input[name=massage]:checked", bookEl);
-  const sum = (k, v) => { $(`[data-sum="${k}"]`, bookEl).textContent = v; };
-  const showAll = (open) => {
-    picks.classList.toggle("is-open", open);
-    allBtn.textContent = open ? "Show less" : label;
-    ScrollTrigger.refresh();
-  };
-  allBtn.addEventListener("click", () => showAll(!picks.classList.contains("is-open")));
+  const sum = (k, v) => $$(`[data-sum="${k}"]`, bookEl).forEach((n) => { n.textContent = v; }); // shown in the dropdown and the summary card
   const fillDurs = () => {
     const keep = $("input[name=dur]:checked", durs)?.value;
     durs.replaceChildren(...JSON.parse(massage().dataset.prices).map(([d, p]) => {
       const l = document.createElement("label");
-      l.className = "dur";
-      l.innerHTML = `<input type="radio" name="dur"><span></span><b></b>`;
+      l.className = "dd__opt";
+      l.innerHTML = `<input type="radio" name="dur"><span></span><small></small>`;
       Object.assign(l.firstChild, { value: d });
       l.firstChild.dataset.price = p;
       l.children[1].textContent = d;
@@ -335,7 +328,7 @@ if (bookEl) {
     ($$("input", durs).find((i) => i.value === keep) || $("input", durs)).checked = true;
   };
   const setGirl = (input) => {
-    photo.src = `img/g-${input.dataset.slug}-0.webp`;
+    photos.forEach((n) => { n.removeAttribute("srcset"); n.src = `img/g-${input.dataset.slug}-0.webp`; });
     profile.href = `girl-${input.dataset.slug}.html`;
   };
   const update = (animate) => {
@@ -349,13 +342,21 @@ if (bookEl) {
     if (ev.target.name === "girl") setGirl(ev.target);
     update(true);
   });
+  // A mouse or touch choice closes its list; arrow keys walk the options (detail 0) and Enter closes
+  const closeDd = (el) => { const d = el.closest(".dd"); d.open = false; $("summary", d).focus({ preventScroll: true }); };
+  bookEl.addEventListener("click", (ev) => { if (ev.detail && ev.target.closest(".dd__opt")) closeDd(ev.target); });
+  bookEl.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && ev.target.matches(".dd input")) closeDd(ev.target); });
+  // An opened list starts at the current choice
+  $$(".dd", bookEl).forEach((d) => d.addEventListener("toggle", () => {
+    const opt = d.open && $("input:checked", d)?.closest(".dd__opt");
+    if (opt) opt.parentElement.scrollTop = opt.offsetTop - 8;
+  }));
   // Profile pages link here with ?girl=<slug>: that masseuse comes preselected
   const want = new URLSearchParams(location.search).get("girl");
   const pre = want && $$("input[name=girl]", bookEl).find((i) => i.dataset.slug === want);
   if (pre) {
     pre.checked = true;
     setGirl(pre);
-    if (pre.closest(".is-more")) showAll(true);
   }
   fillDurs();
   update(false);

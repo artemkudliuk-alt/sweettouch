@@ -437,42 +437,35 @@ main { position: relative; z-index: 1; }
 .book__title { margin-bottom: clamp(20px, 2.4vw, 32px); }
 .book__note { max-width: 760px; margin-bottom: clamp(32px, 4vw, 56px); font-size: 16px; line-height: 1.6; opacity: 0.86; }
 .book__note b { font-weight: 500; opacity: 1; }
+.book__steps { display: grid; gap: 10px; min-width: 0; }
+.book__steps .book__title { font-size: clamp(48px, 5.4vw, 80px); line-height: 0.94; margin-bottom: 8px; }
+.book__steps .book__note { margin-bottom: 14px; font-size: 15px; }
+.dd { position: relative; }
+.dd[open] { z-index: 6; }
+.dd summary { list-style: none; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 18px; border-radius: 16px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow 0.3s; }
+.dd summary::-webkit-details-marker { display: none; }
+.dd summary:hover, .dd[open] summary { box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.5); }
+.dd summary:focus-visible { outline: 2px solid var(--bougie); outline-offset: 3px; }
+.dd summary img { width: 36px; height: 48px; object-fit: cover; border-radius: 8px; flex: none; }
+.dd__val { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.dd__val small { font-size: 12px; opacity: 0.6; }
+.dd__val b { font: italic 400 22px/1.15 var(--serif); }
+.dd__chev { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; opacity: 0.7; transition: transform 0.3s var(--ease); }
+.dd[open] .dd__chev { transform: rotate(180deg); }
+.dd__list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); max-height: min(380px, 60vh); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(234 215 197 / 0.3) transparent; padding: 6px; border-radius: 16px; background: #1a0609; box-shadow: 0 24px 60px -16px rgb(0 0 0 / 0.8), inset 0 0 0 1px rgb(234 215 197 / 0.12); }
+.dd__group { margin: 12px 12px 6px; font: 500 11px/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--or); }
+.dd__opt { position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 7px 12px; border-radius: 10px; cursor: pointer; font-size: 15px; }
+.dd__opt input { position: absolute; opacity: 0; pointer-events: none; }
+.dd__opt span { flex: 1; }
+.dd__opt small { font-size: 13px; opacity: 0.6; white-space: nowrap; }
+.dd__opt img { width: 30px; height: 40px; object-fit: cover; border-radius: 6px; flex: none; }
+.dd__opt:hover, .dd__opt:has(input:focus-visible) { background: rgb(234 215 197 / 0.08); }
+.dd__opt:has(input:checked) { background: var(--chair); color: var(--nuit); }
 .book__grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr); gap: clamp(32px, 5vw, 80px); align-items: start; }
-.book__step { border: 0; padding: 0; margin: 0 0 clamp(32px, 4vw, 48px); min-width: 0; }
-.book__step legend { display: flex; align-items: baseline; gap: 14px; padding: 0; margin-bottom: 18px; font: italic 400 clamp(24px, 2.2vw, 32px)/1 var(--serif); }
-.book__step legend span { font: 500 12px/1 var(--sans); letter-spacing: 0.14em; color: var(--or); }
-.picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 16px 12px; }
-.pick { position: relative; display: grid; gap: 6px; cursor: pointer; }
-.pick span { font: italic 400 16px/1.1 var(--serif); opacity: 0.6; transition: opacity 0.3s; }
-.picks .pick.is-more { display: none; }
-.picks.is-open .pick.is-more { display: grid; }
-.picks__all { margin-top: 20px; border: 0; background: none; cursor: pointer; }
 /* Massages as buttons, grouped like the price list */
-.chips__group { margin: 18px 0 10px; font: 500 11px/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--or); }
-.chips__group:first-of-type { margin-top: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { position: relative; display: inline-flex; align-items: baseline; gap: 10px; padding: 10px 16px; border-radius: 999px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line); transition: background-color 0.3s, color 0.3s; }
-.chip input { position: absolute; opacity: 0; pointer-events: none; }
-.chip span { font-size: 15px; }
-.chip small { font-size: 12px; opacity: 0.6; white-space: nowrap; }
-.chip:hover { box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.4); }
-.chip:has(input:checked) { background: var(--chair); color: var(--nuit); box-shadow: none; }
-.chip:has(input:focus-visible) { outline: 2px solid var(--bougie); outline-offset: 3px; }
 .book__who { display: flex; align-items: center; gap: 16px; padding: 4px 4px 14px; border-bottom: 1px solid var(--line); }
 .book__who img { width: 72px; height: 96px; object-fit: cover; border-radius: 12px; flex: none; }
 .book__who p { font: italic 400 30px/1.1 var(--serif); margin-bottom: 6px; }
-.pick input, .dur input { position: absolute; opacity: 0; pointer-events: none; }
-.pick img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 10px; filter: saturate(0.6) brightness(0.62); transition: filter 0.5s var(--ease), outline-color 0.3s; outline: 1px solid transparent; outline-offset: 3px; }
-.pick:hover img { filter: saturate(0.85) brightness(0.85); }
-.pick:has(input:checked) img { filter: none; outline-color: var(--or); }
-.pick:has(input:checked) span { opacity: 1; }
-.pick:has(input:focus-visible) img, .dur:has(input:focus-visible) { outline: 2px solid var(--bougie); outline-offset: 3px; }
-.durs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; } /* all prices on one line */
-.dur { position: relative; display: grid; gap: 6px; min-width: 112px; padding: 14px 20px; border-radius: 16px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line); transition: background-color 0.3s, color 0.3s; }
-.dur span { font-size: 13px; opacity: 0.7; }
-.dur b { font: 400 24px/1 var(--serif); }
-.dur:hover { box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.4); }
-.dur:has(input:checked) { background: var(--chair); color: var(--nuit); box-shadow: none; }
 .book__card { position: sticky; top: 104px; padding: 18px; border-radius: 24px; background: rgb(12 3 5 / 0.5); backdrop-filter: blur(16px); }
 .book__sum div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 4px; border-bottom: 1px solid var(--line); font-size: 15px; }
 .book__sum dt { opacity: 0.55; }
@@ -495,10 +488,6 @@ main { position: relative; z-index: 1; }
   .mbar a:active { transform: scale(0.97); }
   .mbar .mbar__book { background: var(--chair); color: var(--nuit); }
   body { padding-bottom: 76px; }
-  .durs { gap: 6px; }
-  .dur { min-width: 0; padding: 12px 10px; }
-  .dur span { font-size: 12px; }
-  .dur b { font-size: 20px; white-space: nowrap; }
   /* Teacher banner fills the gap between the FAQ and the SEO chapters */
   .promo { display: block; position: relative; margin: 0 var(--pad); border-radius: 22px; overflow: hidden; }
   .promo img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
@@ -557,10 +546,4 @@ main { position: relative; z-index: 1; }
 /* Booking and FAQ on phones (after the base rules above) */
 @media (max-width: 720px) {
   .faq__side { position: static; }
-  .picks { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; }
-  .pick span { font-size: 13px; }
-  .chips { gap: 6px; }
-  .chip { padding: 8px 12px; }
-  .chip span { font-size: 13px; }
-  .chip small { display: none; } /* the price is in the summary and the durations; two chips fit a line */
 }

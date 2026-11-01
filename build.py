@@ -96,26 +96,29 @@ def massages_grid(rows, shown=6):
 
 
 def book(names, rows, note="", shown=12):
-    """Booking: pick a masseuse (all of them, small photos), a massage (buttons by group) and a duration; the summary
-    shows the price and hands the choice to phone / WhatsApp (prefilled message) / Telegram. Prices come straight from
-    the parsed service list. ?girl=<slug> preselects a masseuse (profile pages link here)."""
+    """Booking: three dropdowns (masseuse, massage, duration); the summary shows the price and hands the choice to
+    phone / WhatsApp (prefilled message) / Telegram. The dropdowns are <details> with radios inside, so they work without
+    any widget code. Prices come straight from the parsed service list. ?girl=<slug> preselects a masseuse (profile pages link here)."""
     order = [GIRL[n] for n in names if n in GIRL] + [g for g in GIRLS if g["name"] not in names]
-    girls_html = "".join(f'<label class="pick{" is-more" if i >= shown else ""}"><input type="radio" name="girl" value="{e(g["name"])}" data-slug="{g["slug"]}"{" checked" if i == 0 else ""}>'
-                         f'<img src="img/g-{g["slug"]}-0.webp" alt="" sizes="96px" loading="lazy"><span>{e(g["name"])}</span></label>' for i, g in enumerate(order))
+    girls_html = "".join(f'<label class="dd__opt"><input type="radio" name="girl" value="{e(g["name"])}" data-slug="{g["slug"]}"{" checked" if i == 0 else ""}>'
+                         f'<img src="img/g-{g["slug"]}-0.webp" alt="" sizes="40px" loading="lazy"><span>{e(g["name"])}</span></label>' for i, g in enumerate(order))
     first = rows[0][0]
-    massages = "".join(f'<p class="chips__group">{e(t)}</p><div class="chips">' + "".join(
-        f'<label class="chip"><input type="radio" name="massage" value="{e(n)}" data-prices="{e(json.dumps(p))}"{" checked" if n == first else ""}>'
-        f'<span>{e(n)}</span><small>from {min(int(x) for _, x in p)} €</small></label>' for n, p in g) + "</div>"
+    massages = "".join(f'<p class="dd__group">{e(t)}</p>' + "".join(
+        f'<label class="dd__opt"><input type="radio" name="massage" value="{e(n)}" data-prices="{e(json.dumps(p))}"{" checked" if n == first else ""}>'
+        f'<span>{e(n)}</span><small>from {min(int(x) for _, x in p)} €</small></label>' for n, p in g)
         for (t, _), g in zip(GROUPS, group_rows(rows)))
-    return f'''<section class="sect book" id="book" data-tone="wine">
-  <h2 class="h2 book__title">Book your massage</h2>
-  {note}
+    chev = '<svg class="dd__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
+    dd = lambda label, thumb, value, attrs, items: (f'<details class="dd"><summary>{thumb}<span class="dd__val"><small>{label}</small><b>{value}</b></span>{chev}</summary>'
+                                                    f'<div class="dd__list" role="group" aria-label="{label}" data-lenis-prevent {attrs}>{items}</div></details>')
+    girl_thumb = f'<img data-book-photo src="img/g-{order[0]["slug"]}-0.webp" alt="" sizes="40px" decoding="async">'
+    return f"""<section class="sect book" id="book" data-tone="wine">
   <div class="book__grid" data-book>
     <div class="book__steps">
-      <fieldset class="book__step"><legend><span>01</span>Masseuse</legend><div class="picks" data-picks>{girls_html}</div>
-        <button class="more picks__all" type="button" data-picks-all>All masseuses ({len(order)})</button></fieldset>
-      <fieldset class="book__step"><legend><span>02</span>Massage</legend>{massages}</fieldset>
-      <fieldset class="book__step"><legend><span>03</span>Duration</legend><div class="durs" data-durs></div></fieldset>
+      <h2 class="h2 book__title">Book your massage</h2>
+      {note}
+      {dd("Masseuse", girl_thumb, '<span data-sum="girl"></span>', "", girls_html)}
+      {dd("Massage", "", '<span data-sum="massage"></span>', "", massages)}
+      {dd("Duration", "", '<span data-sum="dur"></span>', "data-durs", "")}
     </div>
     <aside class="book__card">
       <div class="book__who"><img data-book-photo src="img/g-{order[0]["slug"]}-0.webp" alt="" sizes="72px" loading="lazy" decoding="async">
@@ -132,7 +135,7 @@ def book(names, rows, note="", shown=12):
       </div>
     </aside>
   </div>
-</section>'''
+</section>"""
 
 
 def gcard(g):
