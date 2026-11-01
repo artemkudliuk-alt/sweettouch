@@ -282,10 +282,10 @@ main { position: relative; z-index: 1; }
 /* ---------- Stage: column reveal on the right half, text left ---------- */
 .stage { height: 380vh; position: relative; }
 .stage__pin { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.stage__media { position: relative; grid-column: 2; overflow: hidden; }
+.stage__media { position: relative; grid-column: 1; grid-row: 1; overflow: hidden; }
 .stage__layer, .stage__layer .col { position: absolute; inset: 0; }
 .stage__layer.is-base, .stage__layer .col { background: var(--img) center 25% / cover no-repeat; }
-.stage__texts { grid-column: 1; grid-row: 1; position: relative; align-self: center; margin: 0 var(--pad); height: 60svh; color: var(--chair); }
+.stage__texts { grid-column: 2; grid-row: 1; position: relative; align-self: center; margin: 0 var(--pad); height: 60svh; color: var(--chair); }
 .stage__text { position: absolute; inset: auto 0 0; display: grid; gap: 14px; justify-items: start; opacity: 0; visibility: hidden; }
 .stage__text:first-child { opacity: 1; visibility: visible; }
 .stage__text h2 { font: 400 clamp(40px, 4.6vw, 72px)/0.98 var(--serif); letter-spacing: -0.03em; }
@@ -398,7 +398,7 @@ main { position: relative; z-index: 1; }
   .stage.is-static .stage__media { position: relative; height: 70svh; }
   .stage.is-static .stage__media::after { display: none; }
   .stage.is-static .stage__texts { grid-row: 2; margin-bottom: 0; }
-  .stage__texts { grid-row: 1; z-index: 11; align-self: end; height: 62svh; margin-bottom: 72px; color: var(--chair); }
+  .stage__texts { grid-column: 1; grid-row: 1; z-index: 11; align-self: end; height: 62svh; margin-bottom: 72px; color: var(--chair); }
   .stage__text p:not(.stage__sub) { font-size: 14px; }
   .ptable__row { grid-template-columns: 1fr 96px 110px; }
   .ptable__row span:first-child { font-size: 22px; }
