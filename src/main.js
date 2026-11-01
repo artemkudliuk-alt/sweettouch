@@ -243,7 +243,7 @@ if (!reduce) {
   $$("[data-rail]").forEach((rail) => {
     if (rail.closest("[hidden]")) return;
     gsap.from($$(".card", rail).slice(0, 6), { x: 120, autoAlpha: 0, duration: 1.2, ease: "expo.out", stagger: 0.07,
-      scrollTrigger: { trigger: rail, start: "top 85%", once: true } });
+      scrollTrigger: { trigger: rail, start: "top 85%" } }); // no once: a tween created past its start throws in ScrollTrigger.refresh
   });
 
 }
@@ -295,16 +295,23 @@ $$("[data-rail]").forEach((rail) => {
 
 /* ---------- Stage: a still block, the advantages beside one photo ---------- */
 const stage = $("[data-stage]");
-// The photo is a CSS background (no native lazy loading): attach it only when the block is ~2 screens away, so it
-// never competes with the hero video on load
+// The photos are CSS backgrounds (no native lazy loading): attach them only when the block is ~2 screens away, so they
+// never compete with the hero video on load
 if (stage) {
-  const io = new IntersectionObserver(([en]) => {
-    if (!en.isIntersecting) return;
-    const l = $(".stage__layer", stage);
-    l.style.setProperty("--img", `url(${l.dataset.img})`);
+  const layers = [...stage.querySelectorAll(".stage__layer")];
+  layers[0].classList.add("is-on");
+  const io = new IntersectionObserver((ens) => {
+    if (!ens.some((en) => en.isIntersecting)) return;
+    layers.forEach((l) => l.style.setProperty("--img", `url(${l.dataset.img})`));
     io.disconnect();
   }, { rootMargin: "200% 0px" });
   io.observe(stage);
+  // The advantage crossing the middle of the screen picks its photo; the page scrolls freely
+  const texts = [...stage.querySelectorAll(".stage__text")];
+  const pick = new IntersectionObserver((ens) => ens.forEach((en) => {
+    if (en.isIntersecting) layers.forEach((l, i) => l.classList.toggle("is-on", i === texts.indexOf(en.target)));
+  }), { rootMargin: "-50% 0px -50% 0px" });
+  texts.forEach((t) => pick.observe(t));
 }
 
 /* ---------- Booking: choices -> live summary, price and a prefilled WhatsApp message ---------- */
@@ -334,7 +341,9 @@ if (bookEl) {
   const update = (animate) => {
     const girl = $("input[name=girl]:checked", bookEl).value, m = massage().value, d = $("input[name=dur]:checked", durs);
     sum("girl", girl); sum("massage", m); sum("dur", d.value); sum("price", d.dataset.price);
-    wa.href = `https://wa.me/33758963765?text=${encodeURIComponent(`Hello SweetTouch! I would like to book ${m} (${d.value}) with ${girl}.`)}`;
+    const text = encodeURIComponent(`Hello SweetTouch! I would like to book ${m} (${d.value}) with ${girl}.`);
+    wa.href = `https://wa.me/33758963765?text=${text}`;
+    $("[data-tg]", bookEl).href = `https://t.me/sweettouchfr?text=${text}`;
     if (animate && !reduce) gsap.from('[data-sum="price"]', { yPercent: 70, autoAlpha: 0, duration: 0.6, ease: "expo.out" });
   };
   bookEl.addEventListener("change", (ev) => {

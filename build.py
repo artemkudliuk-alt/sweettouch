@@ -139,7 +139,7 @@ def book(names, rows, note="", shown=12):
       <div class="book__cta">
         <a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
         <a class="btn btn--line" data-wa href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
-        <a class="btn btn--line" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a>
+        <a class="btn btn--line" data-tg href="https://t.me/sweettouchfr">{icon("send")}Book now</a>
       </div>
     </aside>
   </div>
@@ -209,6 +209,7 @@ def faq(block):
             q = None
     # Answers are open from the start; the left column carries the contacts, so the block has no empty half
     return f'''<section class="sect faq" data-tone="noir">
+  <img class="sect__bg" src="img/z-bg-faq.webp" alt="" sizes="(max-width: 720px) 100vw, 40vw" loading="lazy" decoding="async">
   <div class="faq__side"><h2 class="h2">FAQ</h2><p class="lead">Call, write, we are waiting for you!</p>
     <div class="faq__cta"><a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
       <a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
@@ -227,9 +228,9 @@ ICON = {  # Lucide-style line icons
     "right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
     "out": '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
 }
-MAIN = [("Our masseuses", "masseuses.html", "m-about"), ("Massages & prices", "massages.html", "m-tantra"),
-        ("Paris locations", "https://sweettouch.fr/paris-locations", "m-overnight"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "m-sexy-guide"),
-        ("Job offers", "https://sweettouch.fr/job-offers", "m-six-hands"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "m-date")]
+MAIN = [("Our masseuses", "masseuses.html", "z-menu-girls"), ("Massages & prices", "massages.html", "z-menu-massages"),
+        ("Paris locations", "https://sweettouch.fr/paris-locations", "z-menu-locations"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "z-menu-france"),
+        ("Job offers", "https://sweettouch.fr/job-offers", "z-menu-jobs"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "z-menu-card")]
 LANGS = '<a aria-current="true">English</a><a href="https://sweettouch.fr/fr/">Français</a><a href="https://sweettouch.fr/ru/">Русский</a>'
 FLAG = {  # small rectangular flags for the compact language switcher (as on mandra.nextweb.ua)
     "EN": '<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#012169"/><path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="12"/><path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="7"/></svg>',
@@ -405,8 +406,10 @@ def build_home():
       <div class="hx__cta"><a class="btn btn--gold btn--xl" href="#book">Book online</a><a class="btn btn--line btn--xl" href="masseuses.html">Our sweet girls</a></div>
       <p class="hx__intro">{e(intro)}</p>
     </div>'''
-    texts = "\n".join(f'<article class="stage__text"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
-                      for a, b, c, d in advs)
+    adv_img = ["z-adv-premium", "z-adv-private", "z-adv-techniques", "z-all-day", "g-joan-3"]  # same order as the advantages; the last one, "Real masseuses", has to be a real photo
+    layers = "".join(f'<div class="stage__layer" data-img="/img/{i}.webp"></div>' for i in adv_img)
+    texts = "\n".join(f'<article class="stage__text"><img class="stage__ph" src="img/{i}.webp" alt="" loading="lazy" decoding="async"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
+                      for (a, b, c, d), i in zip(advs, adv_img))
     steps_html = "\n".join(f'<li class="step"><span class="step__n">{e(n)}</span><h3>{e(t)}</h3><p>{e(p)}</p></li>' for n, t, p in steps)
     cities = ["madrid", "marbella", "mallorca", "ibiza", "amsterdam", "rome", "milan", "london", "courchevel", "aix"]
     posts_html = [f'<a class="card card--b" href="#"><figure><img src="img/{c}.webp" alt="" loading="lazy"></figure><time>{e(d)}</time><h3 class="card__title">{e(t)}</h3><p>{e(x)}</p><span class="link">read more</span></a>'
@@ -431,15 +434,18 @@ def build_home():
   <figure class="about__img" data-parallax><img src="img/z-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
 </section>
 
+<div class="gallery" aria-hidden="true">{"".join(f'<img src="img/z-gal-{i}.webp" alt="" sizes="(max-width: 720px) 46vw, 24vw" loading="lazy">' for i in range(1, 5))}</div>
+
 <section class="stage is-static" data-stage data-tone="noir" aria-label="Why SweetTouch">
   <div class="stage__pin">
-    <div class="stage__media"><div class="stage__layer" data-img="/img/z-all-day.webp"></div></div>
+    <div class="stage__media">{layers}</div>
     <div class="stage__texts">{texts}</div>
   </div>
 </section>
 
 
 <section class="sect how" data-tone="noir">
+  <img class="sect__bg" src="img/z-bg-how.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
   <h2 class="h2">How it works</h2>
   <p class="how__intro">{e(hw_intro)}</p>
   <ol class="steps">{steps_html}</ol>
@@ -502,7 +508,7 @@ def build_tantra():
 </section>
 
 <section class="sect articles" data-tone="wine">
-{article(art[2:], {"Erotic Origin of Tantra": "m-oriental", "Meet Tantric Massage in Paris": "m-candle"})}
+{article(art[2:], {"Erotic Origin of Tantra": "z-tantra-origin", "Meet Tantric Massage in Paris": "z-tantra-meet"})}
 </section>
 
 <section class="sect girls" data-tone="noir">
