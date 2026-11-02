@@ -10,8 +10,8 @@ PICKS = {  # slot: source frame
     "tantra-1": "p24-a", "tantra-2": "p27-a", "tantra-3": "p18-a",
     "adv-premium": "p08-b", "adv-private": "t2-hotel-window", "adv-techniques": "m05-b",
     "bg-how": "c08", "bg-faq": "c12",
-    "gal-1": "p12-a", "gal-2": "p19-a", "gal-3": "t2-rooftop", "gal-4": "t2-library",
-    "menu-girls": "p22-a", "menu-massages": "t-oil-hands", "menu-locations": "p34-a", "menu-france": "p10-a", "menu-jobs": "p21-b", "menu-card": "p08-a",
+    "gal-1": "p12-a", "gal-2": "p19-b", "gal-3": "t2-rooftop", "gal-4": "t2-library",
+    "menu-girls": "p22-a", "menu-massages": "t-oil-hands", "menu-locations": "p05-a", "menu-france": "p10-a", "menu-jobs": "p21-b", "menu-card": "p08-a",
     "tantra-origin": "m02-c", "tantra-meet": "t2-masseuse-candles",
 }
 
