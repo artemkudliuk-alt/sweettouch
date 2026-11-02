@@ -79,13 +79,10 @@ def dur(d):
     return f"{n} min" if u.lower() == "min" else f"{n} hour{'s' if n != '1' else ''}"
 
 
-TILES = {"oriental", "erotic", "tantra", "body-to-body", "nuru", "private-mutual"}  # generated photos; the other tiles keep sweettouch.fr originals
-
-
 def mcard(name, prices):
     """Service card; only services with a page of their own (Tantra) are links."""
     dl = "".join(f"<div><dt>{e(dur(d))}</dt><dd>{p} €</dd></div>" for d, p in prices)
-    inner = (f'<figure><img src="img/{'z-tile' if SLUG[name] in TILES else 'o'}-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
+    inner = (f'<figure><img src="img/o-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
              f'<h3 class="card__title">{e(name)}</h3><dl class="card__prices">{dl}</dl>')
     return f'<a class="card card--m" href="tantra.html">{inner}</a>' if name == "Tantra Massage" else f'<div class="card card--m">{inner}</div>'
 

@@ -12,8 +12,6 @@ PICKS = {  # slot: source frame
     "bg-how": "c08", "bg-faq": "c12",
     "gal-1": "p12-a", "gal-2": "p19-b", "gal-3": "t2-rooftop", "gal-4": "t2-library",
     "menu-girls": "p22-a", "menu-massages": "t-oil-hands", "menu-locations": "p05-a", "menu-france": "p10-a", "menu-jobs": "p21-b", "menu-card": "p08-a",
-    "tile-oriental": "n-oriental", "tile-erotic": "n-erotic", "tile-tantra": "t2-masseuse-candles",
-    "tile-body-to-body": "m09-c", "tile-nuru": "n-nuru", "tile-private-mutual": "n-private-mutual",
     "tantra-origin": "m02-c", "tantra-meet": "t2-masseuse-candles",
 }
 
