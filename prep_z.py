@@ -8,7 +8,7 @@ PICKS = {  # slot: source frame
     "about": "p18-b", "all-day": "c06", "promo": "p21-a",
     "sensual": "c12", "couple": "c04", "strawberry": "c03", "six-hands": "c07",
     "tantra-1": "p24-a", "tantra-2": "p27-a", "tantra-3": "p18-a",
-    "adv-premium": "p08-b", "adv-private": "t2-hotel-window", "adv-techniques": "m05-b",
+    "adv-premium": "p08-b", "adv-private": "t2-hotel-window", "adv-techniques": "m05-b", "adv-real": "p24-b",
     "bg-how": "c08", "bg-faq": "c12",
     "gal-1": "p12-a", "gal-2": "p19-b", "gal-3": "t2-rooftop", "gal-4": "t2-library",
     "menu-girls": "p22-a", "menu-massages": "t-oil-hands", "menu-locations": "p05-a", "menu-france": "p10-a", "menu-jobs": "p21-b", "menu-card": "p08-a",

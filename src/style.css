@@ -305,7 +305,7 @@ main { position: relative; z-index: 1; }
 .how, .faq { isolation: isolate; overflow: clip; }
 .sect__bg { position: absolute; z-index: -1; top: 0; height: 100%; width: 46%; object-fit: cover; opacity: 0.36; pointer-events: none; }
 .how .sect__bg { right: 0; object-position: center 12%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(#000 45%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(#000 45%, transparent); mask-composite: intersect; }
-.faq .sect__bg { left: 0; top: 42%; height: 58%; width: 40%; object-position: center 8%; -webkit-mask-image: linear-gradient(90deg, #000 45%, transparent), linear-gradient(transparent, #000 25%, #000 72%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, #000 45%, transparent), linear-gradient(transparent, #000 25%, #000 72%, transparent); mask-composite: intersect; }
+.faq .sect__bg { left: 17%; width: 36%; object-position: center 12%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent), linear-gradient(transparent, #000 18%, #000 75%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent), linear-gradient(transparent, #000 18%, #000 75%, transparent); mask-composite: intersect; }
 
 /* How it works */
 .how__intro { max-width: 860px; font: 400 clamp(19px, 1.5vw, 23px)/1.6 var(--sans); opacity: 0.82; margin-bottom: clamp(56px, 6vw, 96px); }
@@ -406,7 +406,7 @@ main { position: relative; z-index: 1; }
   .stage__media::after { content: ""; position: absolute; inset: 0; z-index: 10; background: linear-gradient(rgb(26 6 9 / 0.1), rgb(26 6 9 / 0.94) 50%); }
   .stage.is-static .stage__media { display: none; }
   .stage__ph { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center 25%; border-radius: 12px; }
-  .sect__bg, .faq .sect__bg { top: 0; width: 100%; height: min(100%, 110svh); opacity: 0.2; }
+  .sect__bg, .faq .sect__bg { left: 0; top: 0; width: 100%; height: min(100%, 110svh); opacity: 0.2; }
   .stage.is-static .stage__texts { grid-row: 2; margin-bottom: 0; }
   .stage__texts { grid-column: 1; grid-row: 1; z-index: 11; align-self: end; height: 62svh; margin-bottom: 72px; color: var(--chair); }
   .stage__text p:not(.stage__sub) { font-size: 14px; }

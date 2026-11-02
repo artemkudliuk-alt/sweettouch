@@ -209,7 +209,7 @@ def faq(block):
             q = None
     # Answers are open from the start; the left column carries the contacts, so the block has no empty half
     return f'''<section class="sect faq" data-tone="noir">
-  <img class="sect__bg" src="img/z-bg-faq.webp" alt="" sizes="(max-width: 720px) 100vw, 40vw" loading="lazy" decoding="async">
+  <img class="sect__bg" src="img/z-bg-faq.webp" alt="" sizes="(max-width: 720px) 100vw, 36vw" loading="lazy" decoding="async">
   <div class="faq__side"><h2 class="h2">FAQ</h2><p class="lead">Call, write, we are waiting for you!</p>
     <div class="faq__cta"><a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
       <a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
@@ -304,7 +304,7 @@ def footer():
     <address class="foot__contact"><a href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a><a href="https://wa.me/%2B33758963765">{icon("chat")}WhatsApp +33 7 58 96 37 65</a>
       <a href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}erotic.sweettouch@gmail.com</a><a href="https://goo.gl/maps/CbB6k75MipvzVnVbA">{icon("pin")}Avenue de Wagram 75017</a></address>
   </div>
-  <div class="foot__bottom"><span>We do not offer any kind of sexual services.</span><span class="foot__credit">Designed &amp; developed by <b>Next Web</b></span></div>
+  <div class="foot__bottom"><span>We do not offer any kind of sexual services.</span><span class="foot__credit">Designed &amp; developed by <b>NextWeb</b></span></div>
 </footer>'''
 
 
@@ -406,7 +406,7 @@ def build_home():
       <div class="hx__cta"><a class="btn btn--gold btn--xl" href="#book">Book online</a><a class="btn btn--line btn--xl" href="masseuses.html">Our sweet girls</a></div>
       <p class="hx__intro">{e(intro)}</p>
     </div>'''
-    adv_img = ["z-adv-premium", "z-adv-private", "z-adv-techniques", "z-all-day", "g-joan-3"]  # same order as the advantages; the last one, "Real masseuses", has to be a real photo
+    adv_img = ["z-adv-premium", "z-adv-private", "z-adv-techniques", "z-all-day", "z-adv-real"]  # same order as the advantages
     layers = "".join(f'<div class="stage__layer" data-img="/img/{i}.webp"></div>' for i in adv_img)
     texts = "\n".join(f'<article class="stage__text"><img class="stage__ph" src="img/{i}.webp" alt="" loading="lazy" decoding="async"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
                       for (a, b, c, d), i in zip(advs, adv_img))
