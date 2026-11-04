@@ -44,7 +44,7 @@ $$(".drawer__big", drawer).forEach((a) => a.addEventListener("pointerenter", () 
 }));
 
 /* Smooth scroll */
-const apple = /Mac|iPhone|iPad/.test(navigator.platform) || navigator.userAgentData?.platform === "macOS";
+const apple = /Mac|iPhone|iPad/.test(navigator.platform) || /Macintosh|iPhone|iPad/.test(navigator.userAgent) || navigator.userAgentData?.platform === "macOS";
 if (!reduce && !apple) {
   // Heavier, longer glide after the wheel (as on mandra.nextweb.ua); touch keeps the native inertia
   lenis = new Lenis({ lerp: 0.07, wheelMultiplier: 0.9, smoothWheel: true });

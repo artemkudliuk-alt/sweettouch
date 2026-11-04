@@ -230,9 +230,9 @@ ICON = {  # Lucide-style line icons
     "down": '<path d="m6 9 6 6 6-6"/>',
     "out": '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
 }
-MAIN = [("Our masseuses", "masseuses.html", "z-menu-girls"), ("Massages & prices", "massages.html", "z-menu-massages"),
-        ("Paris locations", "https://sweettouch.fr/paris-locations", "z-menu-locations"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "z-menu-france"),
-        ("Job offers", "https://sweettouch.fr/job-offers", "z-menu-jobs"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "z-menu-card")]
+MAIN = [("Our masseuses", "masseuses.html", "b-katlin-2"), ("Massages & prices", "massages.html", "b-leya-3"),
+        ("Paris locations", "https://sweettouch.fr/paris-locations", "b-alina-0"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "b-eva-0"),
+        ("Job offers", "https://sweettouch.fr/job-offers", "b-lily-0"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "b-katlin-0")]
 # Header dropdown: Tantra has its own page, the rest open the full price list at their card
 SUB_SLUG = {"Tantric Massage": "tantra", "Prostate massage": "prostate", "Domination massage": "domination", "Erotic Chat with the Masseuse": "chat"}
 def SUB_HREF(s):
@@ -279,7 +279,7 @@ def nav():
   </div>
 </header>
 <div class="drawer" id="drawer" data-drawer hidden>
-  <figure class="drawer__img" aria-hidden="true"><img src="img/{MAIN[0][2]}.webp" alt=""></figure>
+  <figure class="drawer__img" aria-hidden="true"><img src="img/{MAIN[0][2]}.webp" alt="" loading="lazy"></figure>
   <nav class="drawer__main" aria-label="Main"><ol>{big}</ol></nav>
   <div class="drawer__side">
     <div><p class="drawer__label">Massages &amp; prices</p><ul class="drawer__sub">{sub}</ul></div>
