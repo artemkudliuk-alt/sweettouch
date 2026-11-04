@@ -8,6 +8,9 @@ const clean = (v) => String(v ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, 20
 const esc = (v) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 module.exports = async (req, res) => {
+  const mailer = () => nodemailer.createTransport({ service: "gmail", auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD } });
+  // GET = health check: logs in to Gmail without sending anything
+  if (req.method === "GET") return res.json({ smtp: await mailer().verify().then(() => true, (e) => e.code || "fail") });
   if (req.method !== "POST") return res.status(405).json({ ok: false });
   const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
   if (b.website) return res.json({ ok: true }); // honeypot: bots fill every field
@@ -15,7 +18,7 @@ module.exports = async (req, res) => {
   if (!o.Contact || !o.Massage) return res.status(400).json({ ok: false });
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return res.status(503).json({ ok: false });
   try {
-    await nodemailer.createTransport({ service: "gmail", auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD } }).sendMail({
+    await mailer().sendMail({
       from: `SweetTouch website <${process.env.GMAIL_USER}>`,
       to: TO,
       replyTo: /@/.test(o.Contact) ? o.Contact : undefined,
