@@ -425,7 +425,7 @@ def build_home():
       <div class="hx__cta"><a class="btn btn--gold btn--xl" href="#book">Book online</a><a class="btn btn--line btn--xl" href="masseuses.html">Our sweet girls</a></div>
       <p class="hx__intro">{e(intro)}</p>
     </div>'''
-    adv_img = ["b-eva-0", "b-katlin-2", "b-leya-3", "b-lily-0", "b-katlin-0"]  # the client's own photos (watermark removed, b-*), same order as the advantages
+    adv_img = ["b-eva-0", "b-katlin-2", "b-marcella-1", "b-lily-0", "b-katlin-0"]  # the client's own photos (watermark removed, b-*), same order as the advantages
     layers = "".join(f'<div class="stage__layer"><img src="img/{i}.webp" alt="" sizes="(max-width: 720px) 92vw, 50vw" loading="lazy" decoding="async"></div>' for i in adv_img)
     texts = "\n".join(f'<article class="stage__text"><img class="stage__ph" src="img/{i}.webp" alt="" loading="lazy" decoding="async"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
                       for (a, b, c, d), i in zip(advs, adv_img))
@@ -462,7 +462,7 @@ def build_home():
 
 
 <section class="sect how" data-tone="noir">
-  <img class="sect__bg" src="img/b-dina-4.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
+  <img class="sect__bg" src="img/b-leya-3.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
   <h2 class="h2">How it works</h2>
   <p class="how__intro">{e(hw_intro)}</p>
   <ol class="steps">{steps_html}</ol>
