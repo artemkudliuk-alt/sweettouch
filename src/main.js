@@ -272,11 +272,14 @@ $$("[data-rail]").forEach((rail) => {
   $("[data-next]", rail).addEventListener("click", () => go(1));
   // Blog turns by itself, one card every 4 s, back to the start at the end; any hover or touch pauses it
   if ("auto" in rail.dataset && !reduce) {
-    let hold = false;
-    ["pointerenter", "focusin", "touchstart"].forEach((ev) => rail.addEventListener(ev, () => (hold = true), { passive: true }));
-    ["pointerleave", "focusout"].forEach((ev) => rail.addEventListener(ev, () => (hold = false)));
+    // Hover holds it; any touch, tap or click rests it for 8 s (on phones pointerleave fires right after a tap,
+    // so a hover flag alone let the timer step together with an arrow tap: two cards at once)
+    let hold = false, touched = 0;
+    rail.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") hold = true; });
+    rail.addEventListener("pointerleave", () => (hold = false));
+    ["pointerdown", "touchstart", "focusin", "wheel"].forEach((ev) => rail.addEventListener(ev, () => (touched = Date.now()), { passive: true }));
     setInterval(() => {
-      if (hold || document.hidden) return;
+      if (hold || document.hidden || Date.now() - touched < 8000) return;
       track.scrollLeft + track.clientWidth >= track.scrollWidth - 4 ? track.scrollTo({ left: 0, behavior: "smooth" }) : go(1);
     }, 4000);
   }
