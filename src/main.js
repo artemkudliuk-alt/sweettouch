@@ -338,10 +338,29 @@ if (bookEl) {
     sum("girl", girl); sum("massage", m); sum("dur", d.value); sum("price", d.dataset.price);
     const text = encodeURIComponent(`Hello SweetTouch! I would like to book ${m} (${d.value}) with ${girl}.`);
     wa.href = `https://wa.me/33758963765?text=${text}`;
-    // Until the booking form gets a backend, "Book now" opens a ready email to her Gmail
-    $("[data-mail]", bookEl).href = `mailto:erotic.sweettouch@gmail.com?subject=${encodeURIComponent(`Booking: ${m} with ${girl}`)}&body=${text}`;
     if (animate && !reduce) gsap.from('[data-sum="price"]', { yPercent: 70, autoAlpha: 0, duration: 0.6, ease: "expo.out" });
   };
+  // The request goes straight to her Gmail through FormSubmit; if that fails, a ready email opens instead
+  const form = $("[data-send]", bookEl), msg = $("[data-send-msg]", form), label = $("[data-send-label]", form);
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const f = new FormData(form), d = $("input[name=dur]:checked", durs);
+    const order = { Masseuse: $("input[name=girl]:checked", bookEl).value, Massage: massage().value, Duration: d.value, Price: `${d.dataset.price} €`,
+      Name: f.get("name") || "-", Contact: f.get("contact") };
+    const subject = `Booking: ${order.Massage} with ${order.Masseuse}`;
+    form.querySelector("button").disabled = true; label.textContent = "Sending…"; msg.textContent = "";
+    try {
+      const r = await fetch("https://formsubmit.co/ajax/erotic.sweettouch@gmail.com", { method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ _subject: subject, _template: "table", _captcha: "false", ...order }) });
+      if (String((await r.json()).success) !== "true") throw 0;
+      form.reset(); msg.textContent = "Your request has been sent. We will contact you shortly.";
+    } catch {
+      msg.textContent = "Could not send. Your email app opens with the request instead.";
+      location.href = `mailto:erotic.sweettouch@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(Object.entries(order).map(([k, v]) => `${k}: ${v}`).join("\n"))}`;
+    }
+    form.querySelector("button").disabled = false; label.textContent = "Send booking request";
+  });
   bookEl.addEventListener("change", (ev) => {
     if (ev.target.name === "massage") fillDurs();
     if (ev.target.name === "girl") setGirl(ev.target);

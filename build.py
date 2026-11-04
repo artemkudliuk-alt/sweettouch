@@ -140,8 +140,13 @@ def book(names, rows, note="", shown=12):
       <div class="book__cta">
         <a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
         <a class="btn btn--line" data-wa href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
-        <a class="btn btn--line" data-mail href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}Book now by email</a>
       </div>
+      <form class="book__send" data-send>
+        <input name="name" autocomplete="name" placeholder="Your name" aria-label="Your name">
+        <input name="contact" required autocomplete="tel" placeholder="Your phone or email *" aria-label="Your phone or email">
+        <button class="btn btn--line" type="submit">{icon("mail")}<span data-send-label>Send booking request</span></button>
+        <p class="book__sent" data-send-msg role="status" aria-live="polite"></p>
+      </form>
     </aside>
   </div>
 </section>"""
@@ -275,7 +280,7 @@ def nav():
     <a class="nav__icon" href="https://wa.me/%2B33758963765" aria-label="Call by Whatsapp" title="Call by Whatsapp">{icon("chat")}</a>
     <a class="nav__icon" href="mailto:erotic.sweettouch@gmail.com" aria-label="erotic.sweettouch@gmail.com" title="erotic.sweettouch@gmail.com">{icon("mail")}</a>
     {lang_switch()}
-    <a class="btn btn--gold btn--nav" href="#book">Make a booking</a>
+    <a class="btn btn--gold btn--nav" href="https://sweettouch.fr/contact">Make a booking</a>
   </div>
 </header>
 <div class="drawer" id="drawer" data-drawer hidden>
