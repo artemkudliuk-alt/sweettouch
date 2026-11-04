@@ -512,7 +512,7 @@ def build_tantra():
       <a class="btn" href="#book">Book online</a>
     </div>
     '''
-    body = f'''{hero(["Tantra"], "Tantra Massage", ["z-tantra-1", "z-tantra-2", "z-tantra-3"], after, "hx--short", (0.27, 0.27))}
+    body = f'''{hero(["Tantra"], "Tantra Massage", ["o-shiatsu", "o-deep-tissue", "o-prostate"], after, "hx--short", (0.27, 0.27))}
 
 <section class="sect split split--dark" data-tone="wine">
   <div><h2 class="h2 h2--m">{e(art[0][3:])}</h2><p>{e(art[1])}</p></div>
@@ -525,7 +525,7 @@ def build_tantra():
 </section>
 
 <section class="sect articles" data-tone="wine">
-{article(art[2:], {"Erotic Origin of Tantra": "z-tantra-origin", "Meet Tantric Massage in Paris": "z-tantra-meet"})}
+{article(art[2:], {"Erotic Origin of Tantra": "o-oriental", "Meet Tantric Massage in Paris": "o-tantra"})}
 </section>
 
 <section class="sect girls" data-tone="noir">
