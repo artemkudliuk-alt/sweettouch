@@ -340,7 +340,7 @@ if (bookEl) {
     wa.href = `https://wa.me/33758963765?text=${text}`;
     if (animate && !reduce) gsap.from('[data-sum="price"]', { yPercent: 70, autoAlpha: 0, duration: 0.6, ease: "expo.out" });
   };
-  // The request goes straight to her Gmail through FormSubmit; if that fails, a ready email opens instead
+  // The request goes to her Gmail through our Vercel function (api/book.js); if that fails, a ready email opens instead
   const form = $("[data-send]", bookEl), msg = $("[data-send-msg]", form), label = $("[data-send-label]", form);
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -350,10 +350,9 @@ if (bookEl) {
     const subject = `Booking: ${order.Massage} with ${order.Masseuse}`;
     form.querySelector("button").disabled = true; label.textContent = "Sending…"; msg.textContent = "";
     try {
-      const r = await fetch("https://formsubmit.co/ajax/erotic.sweettouch@gmail.com", { method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ _subject: subject, _template: "table", _captcha: "false", ...order }) });
-      if (String((await r.json()).success) !== "true") throw 0;
+      const r = await fetch("/api/book", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...order, website: f.get("website") }) });
+      if (!(await r.json()).ok) throw 0;
       form.reset(); msg.textContent = "Your request has been sent. We will contact you shortly.";
     } catch {
       msg.textContent = "Could not send. Your email app opens with the request instead.";

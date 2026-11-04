@@ -511,7 +511,7 @@ main { position: relative; z-index: 1; }
 .book__send input:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--bougie); }
 .book__send button svg { width: 18px; height: 18px; }
 .book__send button:disabled { opacity: 0.6; }
-.book__sent:empty { display: none; }
+.book__sent:empty, .book__hp { display: none; }
 .book__sent { font-size: 14px; color: var(--chair); text-align: center; }
 @media (max-width: 1180px) {
   .book__grid { grid-template-columns: 1fr; }
