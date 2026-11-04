@@ -292,7 +292,7 @@ def nav():
       <a class="drawer__phone" href="tel:+33758963765">+33 7 58 96 37 65</a>
       <a class="drawer__chip" href="https://wa.me/%2B33758963765">{icon("chat")}Call by Whatsapp</a>
       <a class="drawer__chip" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a>
-      <a class="btn" href="#book">Make a booking</a>
+      <a class="btn" href="https://sweettouch.fr/contact">Make a booking</a>
     </div>
     <span class="nav__lang">{LANGS}</span>
   </div>
@@ -398,7 +398,7 @@ def page(title, desc, body):
 <nav class="mbar" aria-label="Quick contact">
   <a href="tel:+33758963765" aria-label="+33 7 58 96 37 65">{icon("phone")}Call</a>
   <a href="https://wa.me/33758963765" aria-label="Call by Whatsapp">{icon("chat")}WhatsApp</a>
-  <a class="mbar__book" href="#book">Make a booking</a>
+  <a class="mbar__book" href="https://sweettouch.fr/contact">Make a booking</a>
 </nav>
 <main>
 {body}
@@ -479,7 +479,7 @@ def build_home():
 </section>
 
 {faq(fq)}
-<aside class="promo" aria-label="Make a booking"><img src="img/b-marcella-0.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="#book">Make a booking</a></aside>
+<aside class="promo" aria-label="Make a booking"><img src="img/b-marcella-0.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="https://sweettouch.fr/contact">Make a booking</a></aside>
 <!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
 <section class="sect articles seo" data-tone="wine" data-seo>
 <div class="seo__body">
