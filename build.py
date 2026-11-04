@@ -84,11 +84,12 @@ def mcard(name, prices):
     dl = "".join(f"<div><dt>{e(dur(d))}</dt><dd>{p} €</dd></div>" for d, p in prices)
     inner = (f'<figure><img src="img/o-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
              f'<h3 class="card__title">{e(name)}</h3><dl class="card__prices">{dl}</dl>')
-    return f'<a class="card card--m" href="tantra.html">{inner}</a>' if name == "Tantra Massage" else f'<div class="card card--m">{inner}</div>'
+    return (f'<a class="card card--m" id="m-{SLUG[name]}" href="tantra.html">{inner}</a>' if name == "Tantra Massage"
+            else f'<div class="card card--m" id="m-{SLUG[name]}">{inner}</div>')
 
 
-def rail(cards, label, cls=""):
-    return (f'<div class="rail{cls}" data-rail><div class="rail__track" tabindex="0" aria-label="{e(label)}">{"".join(cards)}</div>'
+def rail(cards, label, cls="", auto=False):
+    return (f'<div class="rail{cls}" data-rail{" data-auto" if auto else ""}><div class="rail__track" tabindex="0" aria-label="{e(label)}">{"".join(cards)}</div>'
             f'<div class="rail__nav"><button type="button" data-prev aria-label="Previous">{icon("left")}</button>'
             f'<button type="button" data-next aria-label="Next">{icon("right")}</button></div></div>')
 
@@ -122,7 +123,7 @@ def book(names, rows, note="", shown=12):
     return f"""<section class="sect book" id="book" data-tone="wine">
   <div class="book__grid" data-book>
     <div class="book__steps">
-      <h2 class="h2 book__title">Book your massage</h2>
+      <h2 class="h2 book__title">Book your session</h2>
       {note}
       {dd("Masseuse", girl_thumb, '<span data-sum="girl"></span>', "", girls_html)}
       {dd("Massage", "", '<span data-sum="massage"></span>', "", massages)}
@@ -139,7 +140,7 @@ def book(names, rows, note="", shown=12):
       <div class="book__cta">
         <a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
         <a class="btn btn--line" data-wa href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
-        <a class="btn btn--line" data-tg href="https://t.me/sweettouchfr">{icon("send")}Book now</a>
+        <a class="btn btn--line" data-mail href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}Book now by email</a>
       </div>
     </aside>
   </div>
@@ -209,11 +210,11 @@ def faq(block):
             q = None
     # Answers are open from the start; the left column carries the contacts, so the block has no empty half
     return f'''<section class="sect faq" data-tone="noir">
-  <img class="sect__bg" src="img/z-bg-faq.webp" alt="" sizes="(max-width: 720px) 100vw, 36vw" loading="lazy" decoding="async">
+  <img class="sect__bg" src="img/g-nicky-2.webp" alt="" sizes="(max-width: 720px) 100vw, 36vw" loading="lazy" decoding="async">
   <div class="faq__side"><h2 class="h2">FAQ</h2><p class="lead">Call, write, we are waiting for you!</p>
     <div class="faq__cta"><a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
       <a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
-      <a class="btn btn--line" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a></div></div>
+      <a class="btn btn--line" href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}erotic.sweettouch@gmail.com</a></div></div>
   <div class="faq__list">{"".join(out)}</div>
 </section>'''
 
@@ -226,11 +227,16 @@ ICON = {  # Lucide-style line icons
     "pin": '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
     "left": '<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
     "right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+    "down": '<path d="m6 9 6 6 6-6"/>',
     "out": '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
 }
 MAIN = [("Our masseuses", "masseuses.html", "z-menu-girls"), ("Massages & prices", "massages.html", "z-menu-massages"),
         ("Paris locations", "https://sweettouch.fr/paris-locations", "z-menu-locations"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "z-menu-france"),
         ("Job offers", "https://sweettouch.fr/job-offers", "z-menu-jobs"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "z-menu-card")]
+# Header dropdown: Tantra has its own page, the rest open the full price list at their card
+SUB_SLUG = {"Tantric Massage": "tantra", "Prostate massage": "prostate", "Domination massage": "domination", "Erotic Chat with the Masseuse": "chat"}
+def SUB_HREF(s):
+    return "tantra.html" if s == "Tantric Massage" else f"massages.html#m-{SUB_SLUG.get(s) or SLUG.get(s, '')}"
 LANGS = '<a aria-current="true">English</a><a href="https://sweettouch.fr/fr/">Français</a><a href="https://sweettouch.fr/ru/">Русский</a>'
 FLAG = {  # small rectangular flags for the compact language switcher (as on mandra.nextweb.ua)
     "EN": '<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#012169"/><path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="12"/><path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="7"/></svg>',
@@ -256,17 +262,19 @@ def nav():
     sub = "".join(f'<li><a href="{"tantra.html" if s == "Tantric Massage" else "#"}">{s}</a></li>' for s in SUB)
     big = "".join(f'<li><a class="drawer__big" href="{u}" data-img="img/{im}.webp"><span class="drawer__t">{e(t)}</span></a></li>'
                   for t, u, im in MAIN)
+    msub = "".join(f'<li><a href="{SUB_HREF(s)}">{e(s)}</a></li>' for s in SUB)
+    links = "".join(f'<div class="nav__dd"><a href="{u}">{e(t)}{icon("down")}</a><ul class="nav__sub">{msub}</ul></div>' if u == "massages.html"
+                    else f'<a href="{u}">{e(t)}</a>' for t, u, _ in MAIN)
     return f'''<header class="nav" data-nav>
-  <div class="nav__left">
-    <button class="nav__menu" data-burger aria-expanded="false" aria-controls="drawer"><span class="burger" aria-hidden="true"><i></i><i></i></span><span class="nav__menu-label">Menu</span></button>
-    <nav class="nav__links" aria-label="Shortcuts">{"".join(f'<a href="{u}">{e(t)}</a>' for t, u in TOP)}</nav>
-  </div>
-  <a class="nav__logo" href="index.html">SweetTouch</a>
+  <button class="nav__menu" data-burger aria-expanded="false" aria-controls="drawer"><span class="burger" aria-hidden="true"><i></i><i></i></span><span class="nav__menu-label">Menu</span></button>
+  <a class="nav__logo" href="index.html"><img src="img/logo.svg" alt="SweetTouch" width="138" height="42"></a>
+  <nav class="nav__links" aria-label="Main">{links}</nav>
   <div class="nav__right">
-    {lang_switch()}
+    <a class="nav__phone" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
     <a class="nav__icon nav__icon--call" href="tel:+33758963765" aria-label="+33 7 58 96 37 65" title="+33 7 58 96 37 65">{icon("phone")}</a>
     <a class="nav__icon" href="https://wa.me/%2B33758963765" aria-label="Call by Whatsapp" title="Call by Whatsapp">{icon("chat")}</a>
-    <a class="nav__icon" href="https://t.me/sweettouchfr" aria-label="Send to Telegram" title="Send to Telegram">{icon("send")}</a>
+    <a class="nav__icon" href="mailto:erotic.sweettouch@gmail.com" aria-label="erotic.sweettouch@gmail.com" title="erotic.sweettouch@gmail.com">{icon("mail")}</a>
+    {lang_switch()}
     <a class="btn btn--gold btn--nav" href="#book">Make a booking</a>
   </div>
 </header>
@@ -294,15 +302,27 @@ SOCIAL = [("Twitter", "https://twitter.com/SweettouchParis"), ("YouTube", "https
           ("Facebook", "https://facebook.com/sweettouchoutcallparis/")]
 
 
+FOOT_ICON = {"Contact us": "contact", "FAQ": "faq", "Terms and Conditions": "terms", "DMCA policy": "dmca", "Blog": "blog", "Partners": "partners", "Sitemap": "sitemap"}
+SOC_ICON = {"Twitter": "twitter", "YouTube": "youtube", "Pinterest": "pinterest", "Instagram": "inst", "Facebook": "facebook"}
+
+
+def marquee(text):
+    """Big running title (the client asked for it back): the real heading stays for readers and search engines."""
+    dot = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 10 5 5 10 0 5z"/></svg>'
+    run = "".join(f"<span>{e(text)}</span>{dot}" for _ in range(4))
+    return f'<h2 class="sr-only">{e(text)}</h2><div class="marq" aria-hidden="true"><div class="marq__track">{run}{run}</div></div>'
+
+
 def footer():
-    links = "".join(f'<a href="https://sweettouch.fr/{u}">{t}</a>' for t, u in FOOT_LINKS)
-    soc = "".join(f'<a href="{u}">{t}</a>' for t, u in SOCIAL)
+    fi = lambda k: f'<svg class="fi" aria-hidden="true"><use href="img/foot-icons.svg#icon-{k}"/></svg>'
+    links = "".join(f'<a href="https://sweettouch.fr/{u}">{fi("footer-" + FOOT_ICON.get(t, "about"))}{t}</a>' for t, u in FOOT_LINKS)
+    soc = "".join(f'<a href="{u}" aria-label="{t}"><img src="img/soc-{SOC_ICON[t]}.svg" alt="" width="32" height="32"><span>{t}</span></a>' for t, u in SOCIAL)
     return f'''<footer class="foot" data-tone="noir">
   <div class="foot__top">
-    <div><a class="foot__logo" href="index.html">SweetTouch</a><p class="foot__muted">You can find us</p><div class="foot__soc">{soc}</div></div>
+    <div><a class="foot__logo" href="index.html"><img src="img/logo.svg" alt="SweetTouch" width="138" height="42" loading="lazy"></a><p class="foot__muted">You can find us</p><div class="foot__soc">{soc}</div></div>
     <div class="foot__links">{links}</div>
-    <address class="foot__contact"><a href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a><a href="https://wa.me/%2B33758963765">{icon("chat")}WhatsApp +33 7 58 96 37 65</a>
-      <a href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}erotic.sweettouch@gmail.com</a><a href="https://goo.gl/maps/CbB6k75MipvzVnVbA">{icon("pin")}Avenue de Wagram 75017</a></address>
+    <address class="foot__contact"><a href="tel:+33758963765">{fi("phone-call")}+33 7 58 96 37 65</a><a href="https://wa.me/%2B33758963765">{fi("whatsapp")}WhatsApp +33 7 58 96 37 65</a>
+      <a href="mailto:erotic.sweettouch@gmail.com">{fi("contact-mail")}erotic.sweettouch@gmail.com</a><a href="https://goo.gl/maps/CbB6k75MipvzVnVbA">{fi("map-marker")}Avenue de Wagram 75017</a></address>
   </div>
   <div class="foot__bottom"><span>We do not offer any kind of sexual services.</span><span class="foot__credit">Designed &amp; developed by <b>NextWeb</b></span></div>
 </footer>'''
@@ -367,7 +387,6 @@ def page(title, desc, body):
 <script type="module" src="/src/main.js"></script>
 </head>
 <body>
-<div class="cursor" aria-hidden="true"><span class="cursor__label"></span></div>
 <div class="glow" aria-hidden="true"></div>
 <div class="thread" aria-hidden="true"><span></span></div>
 {nav()}
@@ -406,8 +425,8 @@ def build_home():
       <div class="hx__cta"><a class="btn btn--gold btn--xl" href="#book">Book online</a><a class="btn btn--line btn--xl" href="masseuses.html">Our sweet girls</a></div>
       <p class="hx__intro">{e(intro)}</p>
     </div>'''
-    adv_img = ["z-adv-premium", "z-adv-private", "z-adv-techniques", "z-all-day", "z-adv-real"]  # same order as the advantages
-    layers = "".join(f'<div class="stage__layer" data-img="/img/{i}.webp"></div>' for i in adv_img)
+    adv_img = ["g-nicky-1", "g-kelly-2", "g-mila-1", "g-paula-0", "g-megan-1"]  # the client's own photos, same order as the advantages
+    layers = "".join(f'<div class="stage__layer"><img src="img/{i}.webp" alt="" sizes="(max-width: 720px) 92vw, 50vw" loading="lazy" decoding="async"></div>' for i in adv_img)
     texts = "\n".join(f'<article class="stage__text"><img class="stage__ph" src="img/{i}.webp" alt="" loading="lazy" decoding="async"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
                       for (a, b, c, d), i in zip(advs, adv_img))
     steps_html = "\n".join(f'<li class="step"><span class="step__n">{e(n)}</span><h3>{e(t)}</h3><p>{e(p)}</p></li>' for n, t, p in steps)
@@ -418,12 +437,12 @@ def build_home():
     body = f'''{hero(["Erotic", "Massage"], "Erotic Massage in Paris", ["hero-poster"], after, video="hero")}
 
 <section class="sect massages" id="massages" data-tone="noir">
-  <h2 class="h2">Massages &amp; prices</h2>
+  {marquee("Massages & prices")}
   {massages_grid(rows)}
 </section>
 
 <section class="sect girls" id="girls" data-tone="noir">
-  <h2 class="h2">Our sweet girls</h2>
+  {marquee("Gallery of masseuses")}
   {girls(names)}
 </section>
 
@@ -431,21 +450,19 @@ def build_home():
 
 <section class="sect about" data-tone="wine">
   <div class="about__text"><h2 class="h2">About SweetTouch</h2><p class="lead">Relive the unique experience of sensual intimate massage with SweetTouch!</p><p class="about__p" data-highlight>{e(about)}</p></div>
-  <figure class="about__img" data-parallax><img src="img/z-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
+  <figure class="about__img" data-parallax><img src="img/g-marcella-1.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
 </section>
-
-<div class="gallery" aria-hidden="true">{"".join(f'<img src="img/z-gal-{i}.webp" alt="" sizes="(max-width: 720px) 46vw, 24vw" loading="lazy">' for i in range(1, 5))}</div>
 
 <section class="stage is-static" data-stage data-tone="noir" aria-label="Why SweetTouch">
   <div class="stage__pin">
     <div class="stage__media">{layers}</div>
-    <div class="stage__texts">{texts}</div>
+    <div class="stage__texts"><h2 class="h2 stage__title">Benefits of SweetTouch</h2>{texts}</div>
   </div>
 </section>
 
 
 <section class="sect how" data-tone="noir">
-  <img class="sect__bg" src="img/z-bg-how.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
+  <img class="sect__bg" src="img/g-dasha-1.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
   <h2 class="h2">How it works</h2>
   <p class="how__intro">{e(hw_intro)}</p>
   <ol class="steps">{steps_html}</ol>
@@ -453,16 +470,16 @@ def build_home():
 
 <section class="sect blog" data-tone="noir">
   <h2 class="h2">Blog</h2>
-  {rail(posts_html, "Blog")}
+  {rail(posts_html, "Blog", auto=True)}
 </section>
 
 {faq(fq)}
-<aside class="promo" aria-label="Make a booking"><img src="img/z-promo.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="#book">Make a booking</a></aside>
+<aside class="promo" aria-label="Make a booking"><img src="img/g-megan-3.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="#book">Make a booking</a></aside>
 <!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
 <section class="sect articles seo" data-tone="wine" data-seo>
 <div class="seo__body">
-{article(art, {"What Is SweetTouch Erotic Massage? A Journey Beyond Relaxation": "z-sensual", "Our Exclusive Erotic Massage Services in Paris": "z-couple",
-               "Discover Our Special, One-of-a-Kind Offers!": "z-strawberry", "Meet Our Masseuses: The Heart of SweetTouch": "z-six-hands"})}
+{article(art, {"What Is SweetTouch Erotic Massage? A Journey Beyond Relaxation": "old-sensual", "Our Exclusive Erotic Massage Services in Paris": "old-couple",
+               "Discover Our Special, One-of-a-Kind Offers!": "old-erotic", "Meet Our Masseuses: The Heart of SweetTouch": "old-massage"})}
 </div>
 <button class="more seo__toggle" type="button" data-seo-toggle aria-expanded="false">Show all</button>
 </section>

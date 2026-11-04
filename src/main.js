@@ -44,7 +44,8 @@ $$(".drawer__big", drawer).forEach((a) => a.addEventListener("pointerenter", () 
 }));
 
 /* Smooth scroll */
-if (!reduce) {
+const apple = /Mac|iPhone|iPad/.test(navigator.platform) || navigator.userAgentData?.platform === "macOS";
+if (!reduce && !apple) {
   // Heavier, longer glide after the wheel (as on mandra.nextweb.ua); touch keeps the native inertia
   lenis = new Lenis({ lerp: 0.07, wheelMultiplier: 0.9, smoothWheel: true });
   lenis.on("scroll", ScrollTrigger.update);
@@ -248,19 +249,8 @@ if (!reduce) {
 
 }
 
-/* ---------- Cursor ring with context labels + magnetic buttons ---------- */
+/* ---------- Magnetic buttons ---------- */
 if (fine && !reduce) {
-  const cur = $(".cursor"), label = $(".cursor__label", cur);
-  const cx = gsap.quickTo(cur, "x", { duration: 0.35, ease: "power3" }), cy = gsap.quickTo(cur, "y", { duration: 0.35, ease: "power3" });
-  addEventListener("pointermove", (e) => { cur.classList.add("is-on"); cx(e.clientX); cy(e.clientY); });
-  document.addEventListener("pointerleave", () => cur.classList.remove("is-on"));
-  const hint = (sel, text) => $$(sel).forEach((el) => {
-    el.addEventListener("pointerenter", () => { label.textContent = text; cur.classList.add("is-big"); });
-    el.addEventListener("pointerleave", () => cur.classList.remove("is-big"));
-  });
-  hint(".card--m, .card--g", "View");
-  hint(".card--b", "Read");
-
   $$(".btn").forEach((b) => {
     const bx = gsap.quickTo(b, "x", { duration: 0.6, ease: "elastic.out(1, 0.4)" }), by = gsap.quickTo(b, "y", { duration: 0.6, ease: "elastic.out(1, 0.4)" });
     b.addEventListener("pointermove", (e) => { const r = b.getBoundingClientRect(); bx((e.clientX - r.left - r.width / 2) * 0.3); by((e.clientY - r.top - r.height / 2) * 0.4); });
@@ -280,6 +270,16 @@ $$("[data-rail]").forEach((rail) => {
   };
   $("[data-prev]", rail).addEventListener("click", () => go(-1));
   $("[data-next]", rail).addEventListener("click", () => go(1));
+  // Blog turns by itself, one card every 4 s, back to the start at the end; any hover or touch pauses it
+  if ("auto" in rail.dataset && !reduce) {
+    let hold = false;
+    ["pointerenter", "focusin", "touchstart"].forEach((ev) => rail.addEventListener(ev, () => (hold = true), { passive: true }));
+    ["pointerleave", "focusout"].forEach((ev) => rail.addEventListener(ev, () => (hold = false)));
+    setInterval(() => {
+      if (hold || document.hidden) return;
+      track.scrollLeft + track.clientWidth >= track.scrollWidth - 4 ? track.scrollTo({ left: 0, behavior: "smooth" }) : go(1);
+    }, 4000);
+  }
   if (!fine) return;
   let x0 = 0, s0 = 0, moved = false, down = false;
   track.addEventListener("pointerdown", (e) => { down = true; moved = false; x0 = e.clientX; s0 = track.scrollLeft; });
@@ -295,17 +295,9 @@ $$("[data-rail]").forEach((rail) => {
 
 /* ---------- Stage: a still block, the advantages beside one photo ---------- */
 const stage = $("[data-stage]");
-// The photos are CSS backgrounds (no native lazy loading): attach them only when the block is ~2 screens away, so they
-// never compete with the hero video on load
 if (stage) {
   const layers = [...stage.querySelectorAll(".stage__layer")];
   layers[0].classList.add("is-on");
-  const io = new IntersectionObserver((ens) => {
-    if (!ens.some((en) => en.isIntersecting)) return;
-    layers.forEach((l) => l.style.setProperty("--img", `url(${l.dataset.img})`));
-    io.disconnect();
-  }, { rootMargin: "200% 0px" });
-  io.observe(stage);
   // The advantage crossing the middle of the screen picks its photo; the page scrolls freely
   const texts = [...stage.querySelectorAll(".stage__text")];
   const pick = new IntersectionObserver((ens) => ens.forEach((en) => {
@@ -343,7 +335,8 @@ if (bookEl) {
     sum("girl", girl); sum("massage", m); sum("dur", d.value); sum("price", d.dataset.price);
     const text = encodeURIComponent(`Hello SweetTouch! I would like to book ${m} (${d.value}) with ${girl}.`);
     wa.href = `https://wa.me/33758963765?text=${text}`;
-    $("[data-tg]", bookEl).href = `https://t.me/sweettouchfr?text=${text}`;
+    // Until the booking form gets a backend, "Book now" opens a ready email to her Gmail
+    $("[data-mail]", bookEl).href = `mailto:erotic.sweettouch@gmail.com?subject=${encodeURIComponent(`Booking: ${m} with ${girl}`)}&body=${text}`;
     if (animate && !reduce) gsap.from('[data-sum="price"]', { yPercent: 70, autoAlpha: 0, duration: 0.6, ease: "expo.out" });
   };
   bookEl.addEventListener("change", (ev) => {
