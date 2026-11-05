@@ -607,7 +607,8 @@ main { position: relative; z-index: 1; }
 @media (max-width: 720px) {
   .hx__after--home .hx__intro { font-size: 14px; line-height: 1.55; text-align: left; }
   .about__p { font-size: 20px; line-height: 1.35; }
-  .foot { padding-bottom: 104px; } /* clear of the fixed contact bar */
+  .foot { padding-bottom: 20px; } /* body already reserves room for the fixed contact bar */
+  #massages { padding-top: 12px; } /* title sits right under the hero text */
   .card__meta { font-size: 12px; }
   .card__tags li { font-size: 11px; padding: 3px 8px; }
   .card__cup { display: none; }
