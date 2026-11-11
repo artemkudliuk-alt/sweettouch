@@ -412,6 +412,18 @@ main { position: relative; z-index: 1; }
   .drawer__main ol { height: auto; }
   .drawer__big { font-size: 34px; white-space: normal; }
   .drawer__side > .nav__lang { display: flex; }
+  /* Menu photo sits behind the list on the right and fades into the dark */
+  .drawer__img { display: block; position: fixed; top: 0; right: 0; width: 82%; height: 100svh; z-index: 0; pointer-events: none;
+    -webkit-mask-image: linear-gradient(to left, #000 35%, transparent 95%); mask-image: linear-gradient(to left, #000 35%, transparent 95%); }
+  .drawer__img img { object-position: 30% 50%; opacity: 0.7; }
+  .drawer__main, .drawer__side { position: relative; z-index: 1; }
+  .drawer::before { content: ""; position: fixed; inset: 0 0 auto; height: 92px; z-index: 2; pointer-events: none; background: linear-gradient(var(--noir, #0c0305) 55%, transparent); }
+  .drawer__side { gap: 32px; align-content: start; padding-top: 28px; }
+  .drawer__sub { font-size: 18px; gap: 4px; }
+  .drawer__phone, .drawer__chip { display: none; } /* call and WhatsApp live in the bottom bar */
+  .drawer__contact { justify-items: stretch; }
+  .drawer__book { background: transparent; color: var(--chair); box-shadow: inset 0 0 0 1px var(--bougie); gap: 10px; }
+  .drawer__book svg { width: 18px; height: 18px; color: var(--bougie); }
   body { font-size: 16px; }
   .hx__after { bottom: 84px; } /* clear of the fixed contact bar */
   .hx__after--home { gap: 18px; }

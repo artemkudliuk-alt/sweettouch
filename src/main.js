@@ -36,8 +36,8 @@ const setDrawer = (open) => {
 };
 burger.addEventListener("click", () => setDrawer(drawer.hidden));
 addEventListener("keydown", (e) => { if (e.key === "Escape") setDrawer(false); });
-$$(".drawer__big", drawer).forEach((a) => a.addEventListener("pointerenter", () => {
-  if (dImg.getAttribute("src") === a.dataset.img) return;
+$$(".drawer__big", drawer).forEach((a) => a.addEventListener("pointerenter", (ev) => {
+  if (ev.pointerType !== "mouse" || dImg.getAttribute("src") === a.dataset.img) return; // phones keep the menu photo
   gsap.timeline().to(dImg, { autoAlpha: 0, scale: 1.06, duration: 0.25 })
     .add(() => dImg.setAttribute("src", a.dataset.img))
     .to(dImg, { autoAlpha: 1, scale: 1, duration: 0.6, ease: "expo.out" });

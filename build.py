@@ -228,6 +228,7 @@ def faq(block):
 ICON = {  # Lucide-style line icons
     "phone": '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
     "chat": '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
+    "calendar": '<rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/>',
     "send": '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
     "mail": '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
     "pin": '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
@@ -285,15 +286,14 @@ def nav():
   </div>
 </header>
 <div class="drawer" id="drawer" data-drawer hidden>
-  <figure class="drawer__img" aria-hidden="true"><img src="img/{MAIN[0][2]}.webp" alt="" loading="lazy"></figure>
+  <figure class="drawer__img" aria-hidden="true"><img src="img/menu-bg.webp" alt="" loading="lazy"></figure>
   <nav class="drawer__main" aria-label="Main"><ol>{big}</ol></nav>
   <div class="drawer__side">
     <div><p class="drawer__label">Massages &amp; prices</p><ul class="drawer__sub">{sub}</ul></div>
     <div class="drawer__contact">
       <a class="drawer__phone" href="tel:+33758963765">+33 7 58 96 37 65</a>
       <a class="drawer__chip" href="https://wa.me/%2B33758963765">{icon("chat")}Call by Whatsapp</a>
-      <a class="drawer__chip" href="https://t.me/sweettouchfr">{icon("send")}Send to Telegram</a>
-      <a class="btn" href="https://sweettouch.fr/contact">Make a booking</a>
+      <a class="btn drawer__book" href="https://sweettouch.fr/contact">{icon("calendar")}Book a massage</a>
     </div>
     <span class="nav__lang">{LANGS}</span>
   </div>
@@ -480,7 +480,7 @@ def build_home():
 </section>
 
 {faq(fq)}
-<aside class="promo" aria-label="Make a booking"><img src="img/b-marcella-0.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="https://sweettouch.fr/contact">Make a booking</a></aside>
+<aside class="promo" aria-label="Make a booking"><img src="img/z-bg-how.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="https://sweettouch.fr/contact">Make a booking</a></aside>
 <!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
 <section class="sect articles seo" data-tone="wine" data-seo>
 <div class="seo__body">
