@@ -65,6 +65,11 @@ document.addEventListener("click", (e) => {
   setDrawer(false);
   lenis ? lenis.scrollTo(target, { duration: 1.4 }) : target.scrollIntoView();
 });
+// Arriving with #anchor: images and pinned sections shift the layout after the browser's early jump, so land again once loaded
+addEventListener("load", () => {
+  const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+  if (target) lenis ? lenis.scrollTo(target, { immediate: true }) : target.scrollIntoView();
+});
 
 // Language switcher (<details>): closes on a click elsewhere or Escape
 // Dropdowns on <details> (languages, booking): close on an outside press or Escape
