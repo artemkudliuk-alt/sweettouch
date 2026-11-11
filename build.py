@@ -216,7 +216,7 @@ def faq(block):
             q = None
     # Answers are open from the start; the left column carries the contacts, so the block has no empty half
     return f'''<section class="sect faq" data-tone="noir">
-  <img class="sect__bg" src="img/b-alina-0.webp" alt="" sizes="(max-width: 720px) 100vw, 36vw" loading="lazy" decoding="async">
+  <img class="sect__bg" src="img/v-faq-bg.webp" alt="" sizes="(max-width: 720px) 100vw, 36vw" loading="lazy" decoding="async">
   <div class="faq__side"><h2 class="h2">FAQ</h2><p class="lead">Call, write, we are waiting for you!</p>
     <div class="faq__cta"><a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a>
       <a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}Call by Whatsapp</a>
@@ -431,7 +431,7 @@ def build_home():
       <div class="hx__cta"><a class="btn btn--gold btn--xl" href="#book">Book online</a><a class="btn btn--line btn--xl" href="masseuses.html">Our sweet girls</a></div>
       <p class="hx__intro">{e(intro)}</p>
     </div>'''
-    adv_img = ["b-eva-0", "b-katlin-2", "b-marcella-1", "b-lily-0", "b-katlin-0"]  # the client's own photos (watermark removed, b-*), same order as the advantages
+    adv_img = ["v-adv-premium", "v-adv-private", "v-adv-techniques", "v-adv-fast", "v-adv-real"]  # Seedream 5.5 set in the client's chosen style (11.11), same order as the advantages
     layers = "".join(f'<div class="stage__layer"><img src="img/{i}.webp" alt="" sizes="(max-width: 720px) 92vw, 50vw" loading="lazy" decoding="async"></div>' for i in adv_img)
     texts = "\n".join(f'<article class="stage__text"><img class="stage__ph" src="img/{i}.webp" alt="" loading="lazy" decoding="async"><h2>{e(a)}</h2><p class="stage__sub">{e(b)}</p><p>{e(c)}</p><a class="link" href="#">{e(d)}</a></article>'
                       for (a, b, c, d), i in zip(advs, adv_img))
@@ -456,7 +456,7 @@ def build_home():
 
 <section class="sect about" data-tone="wine">
   <div class="about__text"><h2 class="h2">About SweetTouch</h2><p class="lead">Relive the unique experience of sensual intimate massage with SweetTouch!</p><p class="about__p" data-highlight>{e(about)}</p></div>
-  <figure class="about__img" data-parallax><img src="img/b-dina-1.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
+  <figure class="about__img" data-parallax><img src="img/v-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
 </section>
 
 <section class="stage is-static" data-stage data-tone="noir" aria-label="Why SweetTouch">
@@ -468,7 +468,7 @@ def build_home():
 
 
 <section class="sect how" data-tone="noir">
-  <img class="sect__bg" src="img/b-leya-3.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
+  <img class="sect__bg" src="img/v-how-bg.webp" alt="" sizes="(max-width: 720px) 100vw, 46vw" loading="lazy" decoding="async">
   <h2 class="h2">How it works</h2>
   <p class="how__intro">{e(hw_intro)}</p>
   <ol class="steps">{steps_html}</ol>
