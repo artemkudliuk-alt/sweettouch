@@ -18,6 +18,7 @@ const setDrawer = (open) => {
   burger.setAttribute("aria-expanded", open);
   label.textContent = open ? "Close" : "Menu";
   document.documentElement.style.overflow = open ? "hidden" : "";
+  document.documentElement.classList.toggle("menu-open", open); // phones: the header swaps its call button for the language switch
   if (lenis) open ? lenis.stop() : lenis.start();
   drawerTl?.kill();
   if (reduce) { drawer.hidden = !open; return; }
