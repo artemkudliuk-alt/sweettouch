@@ -327,8 +327,8 @@ main { position: relative; z-index: 1; }
 .stage__ph { display: none; } /* phone only: there each advantage carries its own photo */
 .how, .faq { isolation: isolate; overflow: clip; }
 .sect__bg { position: absolute; z-index: -1; top: 0; height: 100%; width: 46%; object-fit: cover; opacity: 0.36; pointer-events: none; }
-.how .sect__bg { right: 0; object-position: center 12%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(#000 45%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(#000 45%, transparent); mask-composite: intersect; }
-.faq .sect__bg { left: 17%; width: 36%; object-position: center 12%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent), linear-gradient(transparent, #000 18%, #000 75%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent), linear-gradient(transparent, #000 18%, #000 75%, transparent); mask-composite: intersect; }
+.how .sect__bg { right: 0; height: 58%; object-position: 70% 74%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(#000 60%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(#000 60%, transparent); mask-composite: intersect; }
+.faq .sect__bg { left: 12%; top: 56px; width: 36%; object-position: center 6%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent), linear-gradient(transparent, #000 18%, #000 75%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent), linear-gradient(transparent, #000 18%, #000 75%, transparent); mask-composite: intersect; }
 
 /* How it works */
 .how__intro { max-width: 860px; font: 400 clamp(19px, 1.5vw, 23px)/1.6 var(--sans); opacity: 0.82; margin-bottom: clamp(56px, 6vw, 96px); }
