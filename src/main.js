@@ -348,6 +348,39 @@ if (filter) {
   document.addEventListener("click", (ev) => { if (!inSheet() && !ev.target.closest(".fdd")) $$(".fdd[open]", filter).forEach((d) => (d.open = false)); });
 }
 
+/* ---------- Booking page (contact.html): incall / outcall form, sent to her Gmail by /api/contact ---------- */
+const cform = $("[data-contact]");
+if (cform) {
+  const out = $("[data-out]", cform), hotel = $("[data-hotel]", cform), apart = $("[data-apart]", cform);
+  const msg = $("[data-contact-msg]", cform), label = $("[data-contact-label]", cform), btn = $("button[type=submit]", cform);
+  const want = new URLSearchParams(location.search);
+  if (want.get("girl")) $$("[name=girl] option", cform).forEach((o) => (o.selected = o.value === want.get("girl")));
+  if (want.get("massage")) $$("[name=massage] option", cform).forEach((o) => (o.selected = o.value === want.get("massage")));
+  const sync = () => {
+    const outcall = $("[name=type]:checked", cform).value === "Outcall", isHotel = $("[name=place]:checked", cform).value === "Hotel";
+    out.hidden = !outcall; hotel.hidden = !isHotel; apart.hidden = isHotel;
+    // only the visible outcall fields are required
+    $$("[name=hotel], [name=room]", cform).forEach((i) => (i.required = outcall && isHotel));
+    $$("[name=address], [name=door], [name=floor], [name=flat]", cform).forEach((i) => (i.required = outcall && !isHotel));
+  };
+  cform.addEventListener("change", (ev) => { if (ev.target.name === "type" || ev.target.name === "place") sync(); });
+  sync();
+  cform.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!cform.checkValidity()) { cform.reportValidity(); return; }
+    btn.disabled = true; label.textContent = "Sending…"; msg.textContent = "";
+    const data = Object.fromEntries(new FormData(cform));
+    try {
+      const r = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      if (!(await r.json()).ok) throw 0;
+      cform.reset(); sync(); msg.textContent = "Thank you! Your booking request has been sent. We will confirm it shortly.";
+    } catch {
+      msg.textContent = "Could not send. Please call +33 7 58 96 37 65 or write on WhatsApp.";
+    }
+    btn.disabled = false; label.textContent = "Send booking";
+  });
+}
+
 /* ---------- Job application: photos shrink in the browser (1600 px JPEG), the whole form goes to /api/job ---------- */
 const job = $("[data-job]");
 if (job) {

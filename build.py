@@ -312,7 +312,7 @@ def nav():
     <a class="nav__icon" href="https://wa.me/%2B33758963765" aria-label="Call by Whatsapp" title="Call by Whatsapp">{icon("chat")}</a>
     <a class="nav__icon" href="mailto:erotic.sweettouch@gmail.com" aria-label="erotic.sweettouch@gmail.com" title="erotic.sweettouch@gmail.com">{icon("mail")}</a>
     {lang_switch()}
-    <a class="btn btn--gold btn--nav" href="https://sweettouch.fr/contact">Make a booking</a>
+    <a class="btn btn--gold btn--nav" href="contact.html">Make a booking</a>
   </div>
 </header>
 <div class="drawer" id="drawer" data-drawer hidden>
@@ -323,7 +323,7 @@ def nav():
     <div class="drawer__contact">
       <a class="drawer__phone" href="tel:+33758963765">+33 7 58 96 37 65</a>
       <a class="drawer__chip" href="https://wa.me/%2B33758963765">{icon("chat")}Call by Whatsapp</a>
-      <a class="btn drawer__book" href="https://sweettouch.fr/contact">{icon("calendar")}Book a massage</a>
+      <a class="btn drawer__book" href="contact.html">{icon("calendar")}Book a massage</a>
     </div>
     <span class="nav__lang">{LANGS}</span>
   </div>
@@ -429,7 +429,7 @@ def page(title, desc, body):
 <nav class="mbar" aria-label="Quick contact">
   <a href="tel:+33758963765" aria-label="+33 7 58 96 37 65">{icon("phone")}Call</a>
   <a href="https://wa.me/33758963765" aria-label="Call by Whatsapp">{icon("chat")}WhatsApp</a>
-  <a class="mbar__book" href="https://sweettouch.fr/contact">Make a booking</a>
+  <a class="mbar__book" href="contact.html">Make a booking</a>
 </nav>
 <main>
 {body}
@@ -510,7 +510,7 @@ def build_home():
 </section>
 
 {faq(fq)}
-<aside class="promo" aria-label="Make a booking"><img src="img/z-bg-how.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="https://sweettouch.fr/contact">Make a booking</a></aside>
+<aside class="promo" aria-label="Make a booking"><img src="img/z-bg-how.webp" alt="" loading="lazy" decoding="async"><a class="btn" href="contact.html">Make a booking</a></aside>
 <!-- SEO copy: kept 1:1, folded into closed chapters just above the footer -->
 <section class="sect articles seo" data-tone="wine" data-seo>
 <div class="seo__body">
@@ -658,9 +658,9 @@ def build_info(d):
     after = f"""<div class="hx__after">
       <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">SweetTouch</a> / <a href="massages.html">Massages &amp; prices</a> / <span>{e(name)}</span></nav>
       {checks}
-      {quick}
-      <a class="btn" href="#book">Book online</a>
-    </div>"""
+      <a class="btn" href="contact.html">Book online</a>
+    </div>
+    <div class="hx__side">{quick}</div>"""
     team = ([n for n in d["team"] if n in GIRL] or [g["name"] for g in GIRLS if name in g["services"]] or [g["name"] for g in GIRLS])[:5]  # one row of five
     intro = next((l for l in d["art"] if not l.startswith("#")), "")
     body = f"""{hero(words, name, [f"pv-{sl}" if vid else f"p-{sl}" if (ROOT / "public" / "img" / f"p-{sl}.webp").exists() else f"o-{mimg(name)}"], after, "hx--short", (min(0.24, 1.45 / longest), min(0.27, 1.4 / longest)), video=vid, lh=0.98)}
@@ -730,7 +730,9 @@ def build_text(sl):
             emit("quote", f'<figure class="quote"><blockquote>{e(t)}</blockquote><figcaption>{e(nxt)}<span>{e(it[k + 2][0])}</span></figcaption></figure>'); k += 2
         elif DATE_US.match(nxt):
             ex = it[k + 2][0] if k + 2 < len(it) and not it[k + 2][0].startswith("read more") else ""
-            emit("post", f'<a class="post" href="{href(u)}"><time>{e(nxt)}</time><h3>{e(t)}</h3><p>{e(ex)}</p><span>Read more</span></a>')
+            city = next((c for c in ("madrid", "marbella", "mallorca", "ibiza", "amsterdam", "rome", "milan") if c in t.lower()), None)
+            cover = f'<figure class="post__img"><img src="img/p-blog-{city}.webp" alt="" loading="lazy"></figure>' if city else ""
+            emit("post", f'<a class="post" href="{href(u)}">{cover}<div class="post__body"><time>{e(nxt)}</time><h3>{e(t)}</h3><p>{e(ex)}</p><span>Read more</span></div></a>')
             k += 2 + (1 if ex else 0) + (1 if k + 3 < len(it) and it[k + 3][0].startswith("read more") else 0)
         elif re.match(r"^\d+ girls?$", nxt) and it[k + 1][1]:
             emit("tile", f'<a class="dtile" href="{href(it[k + 1][1])}"><span>{e(t)}</span><b>{e(nxt)}</b></a>'); k += 1
@@ -790,6 +792,106 @@ def job_form():
   <li><a href="viber://add?number=+33758963765">Viber +33 7 58 96 37 65</a></li><li><a href="mailto:erotic.sweettouch@gmail.com">erotic.sweettouch@gmail.com</a></li></ul></div>"""
 
 
+def build_contact():
+    """The old site's booking form (contact page), incall or outcall; main.js posts it to /api/contact."""
+    cities = json.loads((CONTENT / "cities.json").read_text(encoding="utf-8"))
+    opt = lambda vals, first="": (f'<option value="">{first}</option>' if first else "") + "".join(f'<option>{e(v)}</option>' for v in vals)
+    sel = lambda nm, lab, vals, first="Choose": f'<label class="jf__f"><span>{lab} *</span><select name="{nm}" required>{opt(vals, first)}</select></label>'
+    inp = lambda nm, lab, t="text", req=True, cls="": f'<label class="jf__f{cls}"><span>{lab}{" *" if req else ""}</span><input name="{nm}" type="{t}"{" required" if req else ""}></label>'
+    durs = ["30 min", "1 hr", "1 hr 30 min", "2 hr", "3 hr", "6 hr", "12 hr"]
+    form = f"""<form class="jf bform" data-contact novalidate>
+  <div class="bform__type"><label><input type="radio" name="type" value="Incall" checked><span>Incall</span></label><label><input type="radio" name="type" value="Outcall"><span>Outcall</span></label></div>
+  <div class="jf__grid">
+    {sel("girl", "I would like to book", [g["name"] for g in GIRLS])}
+    {sel("massage", "Type of massage", [n for n, _ in home_rows()])}
+    {inp("date", "Booking date", "date")}
+    {inp("time", "Time", "time", False)}
+    {sel("duration", "Duration", durs)}
+    {sel("city", "City", cities, "")}
+    {inp("first", "First name")}
+    {inp("last", "Last name", req=False)}
+    {inp("phone", "Phone number", "tel")}
+    {inp("email", "E-mail", "email", False)}
+  </div>
+  <div class="bform__out" data-out hidden>
+    <div class="bform__type bform__type--small"><label><input type="radio" name="place" value="Hotel" checked><span>Hotel</span></label><label><input type="radio" name="place" value="Apartment"><span>Apartment</span></label></div>
+    <div class="jf__grid" data-hotel>{inp("hotel", "Full hotel name", req=False)}{inp("room", "Room number", req=False)}</div>
+    <div class="jf__grid" data-apart hidden>{inp("address", "Address", req=False, cls=" jf__f--wide")}{inp("zip", "Zip code", req=False)}{inp("door", "Door code", req=False)}
+      {inp("interphone", "Interphone", req=False)}{inp("floor", "Floor", req=False)}{inp("flat", "Flat number", req=False)}</div>
+    <p class="bform__note">*This information is confidential and will not be shared.</p>
+  </div>
+  <label class="jf__f jf__f--wide"><span>Comment</span><textarea name="comment" rows="3"></textarea></label>
+  <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="book__hp">
+  <button class="btn btn--gold btn--xl" type="submit"><span data-contact-label>Send booking</span></button>
+  <p class="book__sent" data-contact-msg role="status" aria-live="polite"></p>
+</form>"""
+    body = f"""{phead("Contact us", [("SweetTouch", "index.html")], "Get in touch with SweetTouch", img="p-hdr-contact")}
+<section class="sect prose" data-tone="noir"><div class="jobgrid">
+  <div class="prose__in">
+    <h2 class="prose__h2">We are available 24/7</h2>
+    <p>The fastest and easiest way to contact us or make a booking is to give us a call on +33 7 58 96 37 65.</p>
+    <p class="prose__cta"><a class="btn btn--gold" href="tel:+33758963765">{icon("phone")}+33 7 58 96 37 65</a><a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}WhatsApp</a>
+      <a class="btn btn--line" href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}erotic.sweettouch@gmail.com</a></p>
+    <p>Avenue de Wagram 75017, Paris. All locations are open daily from 10:00 to 02:00.</p>
+  </div>
+  <aside class="jobgrid__form" data-lenis-prevent>{form}</aside>
+</div></section>
+{footer()}"""
+    return page("Contact us and book an erotic massage in Paris - SweetTouch", "Book an incall or outcall erotic massage in Paris: choose the masseuse, massage, date and duration.", body)
+
+
+def build_book_page():
+    """Book your massage: the six Paris locations as cards, then timetable and contacts (text 1:1 from the old page)."""
+    it = [(t, u) for t, u in po.raw_items("pages/book-your-massage.txt")]
+    h1 = next(i for i, (t, _) in enumerate(it) if t.startswith("# "))
+    end = next(i for i, (t, _) in enumerate(it) if t == "You can find us")
+    it = it[h1:end]
+    title, lead = it[0][0][2:], it[1][0]
+    k = next(i for i, (t, _) in enumerate(it) if t.startswith("SweetTouch Locations"))
+    intro = "".join(f"<p>{e(t)}</p>" for t, _ in it[2:k] if t)
+    cards, i = [], k + 1
+    while i < len(it) and it[i][0].startswith("Paris "):
+        name, addr, feat, note = it[i][0], it[i + 1][0], it[i + 2][0], it[i + 3][0]
+        cards.append(f'<article class="loc"><h3>{e(name)}</h3><p class="loc__a">{icon("pin")}{e(addr.replace("Address: ", ""))}</p>'
+                     f'<p class="loc__f">{e(feat.replace("Features: ", ""))}</p><p class="loc__n">{e(note)}</p></article>')
+        i += 4
+    rest = [t for t, _ in it[i:] if t and not t.startswith(("Book now", "Chat online", "WhatsApp:"))]
+    body = f"""{phead(title, [("SweetTouch", "index.html")], lead, img="p-hdr-book-your-massage")}
+<section class="sect prose" data-tone="noir"><div class="prose__in">{intro}
+  <h2 class="prose__h2">SweetTouch locations</h2>
+  <div class="locs">{"".join(cards)}</div>
+  {"".join(f'<h3 class="prose__h3">{e(t)}</h3>' if len(t) < 40 and not t.endswith(".") else f"<p>{e(t)}</p>" for t in rest)}
+  <p class="prose__cta"><a class="btn btn--gold btn--xl" href="contact.html">{icon("calendar")}Book now</a><a class="btn btn--line" href="https://wa.me/33758963765">{icon("chat")}WhatsApp +33 7 58 96 37 65</a></p>
+</div></section>
+{footer()}"""
+    return page("Book your erotic massage in Paris - SweetTouch", lead, body)
+
+
+def build_about():
+    """About: the old text, laid out like the home page: banner, lead, two chapters with photos, numbers, masseuses."""
+    L = [t for t, _ in po.raw_items("pages/about.txt")]
+    h1 = next(i for i, t in enumerate(L) if t.startswith("# "))
+    end = next(i for i, t in enumerate(L) if t == "You can find us")
+    L = [t for t in L[h1 + 1:end] if t]
+    si, mi = L.index("Services"), L.index("Masseuses and masseurs")
+    para = lambda ls: "".join(f'<p class="lead">{e(t)}</p>' if t.startswith("Relive") else f"<p>{e(t)}</p>" for t in ls)
+    nums = [(str(len(GIRLS)), "masseuses"), (str(len(INFOS)), "massages"), ("24/7", "booking support"), ("2015", "in Paris since")]
+    body = f"""{phead("About SweetTouch", [("SweetTouch", "index.html")], img="p-hdr-about")}
+<section class="sect about-lead" data-tone="noir"><p class="lead lead--wide">{e(L[0])}</p></section>
+<section class="sect split split--dark" data-tone="wine">
+  <div><h2 class="h2 h2--m">Services</h2>{para(L[si + 1:mi])}</div>
+  <figure class="about2__img"><img src="img/v-adv-techniques.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
+</section>
+<section class="sect nums" data-tone="noir">{"".join(f'<div><b>{n}</b><span>{t}</span></div>' for n, t in nums)}</section>
+<section class="sect split split--dark split--rev" data-tone="wine">
+  <figure class="about2__img"><img src="img/v-about.webp" alt="" sizes="(max-width: 720px) 92vw, 46vw" loading="lazy"></figure>
+  <div><h2 class="h2 h2--m">Masseuses and masseurs</h2>{para(L[mi + 1:])}</div>
+</section>
+<section class="sect girls" data-tone="noir"><h2 class="h2 h2--m">Meet our masseuses</h2>{girls([g["name"] for g in GIRLS[:5]])}</section>
+{footer()}"""
+    return page("About SweetTouch - erotic massage in Paris", L[0][:155], body)
+
+
 def build_sitemap():
     sec = [("Main", [("Home", "index.html"), ("Our masseuses", "masseuses.html"), ("Massages & prices", "massages.html")]
             + [(t, f"{sl}.html") for t, sl in (("Paris locations", "paris-locations"), ("Erotic Massage in France", "erotic-massage-in-france"),
@@ -808,7 +910,8 @@ def build_sitemap():
 away = lambda h: h.replace('href="#book"', 'href="index.html#book"')
 out = {"index.html": build_home(), "massages.html": away(build_massages()), "masseuses.html": away(build_masseuses())}
 out.update({po.MFILE[sl]: away(build_info(d)) for sl, d in INFOS.items()})
-out.update({f"{sl}.html": away(build_sitemap() if sl == "sitemap" else build_text(sl)) for sl in po.SECONDARY})
+SPECIAL = {"sitemap": build_sitemap, "contact": build_contact, "book-your-massage": build_book_page, "about": build_about}
+out.update({f"{sl}.html": away(SPECIAL[sl]() if sl in SPECIAL else build_text(sl)) for sl in po.SECONDARY})
 out.update({f"girl-{g['slug']}.html": away(build_girl(g, home_rows())) for g in GIRLS})
 for name, h in out.items():
     (ROOT / name).write_text(h, encoding="utf-8")

@@ -810,3 +810,63 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 .prose__cta .btn--xl { padding: 28px 56px; font-size: 21px; min-width: min(420px, 100%); gap: 12px; margin-top: 12px; box-shadow: 0 18px 50px rgb(242 178 92 / 0.25); }
 .prose__cta .btn--xl svg { width: 22px; height: 22px; }
 @media (max-width: 720px) { .prose__cta .btn--xl { width: 100%; padding: 22px 24px; font-size: 18px; flex: none; } }
+
+/* Massage page: prices on the right of the first screen */
+.hx__side { position: absolute; z-index: 4; right: var(--pad); bottom: 72px; display: grid; gap: 14px; justify-items: end; text-align: right; }
+.hx__side .hx__prices { grid-template-columns: repeat(2, auto); gap: 14px 40px; }
+.hx__side .hx__prices dd { font-size: clamp(34px, 3vw, 46px); }
+.hx__side .hx__pnote { margin: 0; }
+@media (max-width: 720px) {
+  .hx__side { position: static; justify-items: start; text-align: left; }
+  .hx__side .hx__prices dd { font-size: 28px; }
+}
+/* Blog: cover photos */
+.posts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.post { padding: 0; overflow: hidden; }
+.post:first-child { grid-column: span 2; grid-row: span 2; }
+.post__img { margin: 0; aspect-ratio: 16 / 10; overflow: hidden; }
+.post:first-child .post__img { aspect-ratio: auto; height: 62%; }
+.post__img img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease); }
+.post:hover .post__img img { transform: scale(1.04); }
+.post__body { display: grid; gap: 10px; padding: 22px 24px 26px; }
+.post:first-child h3 { font-size: clamp(30px, 3vw, 44px); }
+/* Testimonials: four columns, centred, cards of different heights */
+.quotes { display: block; columns: 4 240px; column-gap: 16px; max-width: 1320px; margin-inline: auto; }
+.quotes .quote { break-inside: avoid; margin: 0 0 16px; text-align: center; justify-items: center; }
+.quotes .quote:nth-child(3n + 1) blockquote { font-size: 20px; line-height: 1.5; }
+.quotes .quote:nth-child(4n + 2) { padding-block: 40px; background: rgb(234 215 197 / 0.07); }
+.quote figcaption { gap: 14px; justify-content: center; }
+/* Book your massage: location cards */
+.locs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; max-width: none; }
+.loc { padding: 24px; border-radius: 18px; background: rgb(234 215 197 / 0.04); box-shadow: inset 0 0 0 1px var(--line); display: grid; gap: 10px; align-content: start; }
+.loc h3 { font: italic 400 24px/1.15 var(--serif); margin: 0; }
+.loc__a { display: flex; gap: 8px; align-items: center; color: var(--or); font-size: 15px; }
+.loc__a svg { width: 18px; height: 18px; flex: none; }
+.loc__f { font-size: 15px; }
+.loc__n { font-size: 14px; opacity: 0.65; }
+/* About */
+.about-lead { text-align: center; } .about-lead .lead--wide { margin: 0 auto; max-width: 1000px; }
+.about2__img { margin: 0; border-radius: 22px; overflow: hidden; aspect-ratio: 4 / 5; }
+.about2__img img { width: 100%; height: 100%; object-fit: cover; }
+.split--rev { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr); }
+.nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; text-align: center; }
+.nums b { display: block; font: 400 clamp(54px, 6vw, 96px)/1 var(--serif); color: var(--or); }
+.nums span { font-size: 14px; opacity: 0.7; }
+/* Booking form on the contact page */
+.bform select { font: inherit; font-size: 16px; color: var(--chair); background: rgb(234 215 197 / 0.06); border: 0; border-radius: 14px; padding: 13px 16px; box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.16); }
+.bform select option { color: #111; }
+.jf__f--wide { grid-column: 1 / -1; }
+.bform__type { display: flex; gap: 6px; padding: 5px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); justify-self: start; }
+.bform__type input { position: absolute; opacity: 0; }
+.bform__type span { display: block; padding: 11px 26px; border-radius: 999px; cursor: pointer; font-size: 15px; }
+.bform__type input:checked + span { color: var(--nuit); background: var(--chair); }
+.bform__type input:focus-visible + span { outline: 2px solid var(--bougie); }
+.bform__type--small span { padding: 8px 18px; font-size: 14px; }
+.bform__out { display: grid; gap: 14px; }
+.bform [hidden] { display: none; }
+.bform__note { font-size: 13px; opacity: 0.6; }
+@media (max-width: 720px) {
+  .posts { grid-template-columns: 1fr; } .post:first-child { grid-column: auto; grid-row: auto; } .post:first-child .post__img { height: auto; aspect-ratio: 16 / 10; }
+  .nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .split--rev { grid-template-columns: 1fr; }
+}

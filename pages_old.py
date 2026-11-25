@@ -6,9 +6,9 @@ from pathlib import Path
 TXT = Path(__file__).parent.parent / "content" / "txt"
 INFO_SLUGS = sorted(p.stem for p in (TXT / "info").glob("*.txt"))
 MFILE = {s: "tantra.html" if s == "tantra-massage" else f"massage-{s}.html" for s in INFO_SLUGS}
-# Secondary pages built locally; contact and book-your-massage stay on the old site (they are its booking forms)
+# Secondary pages built locally (contact = the full booking form, since 25.11)
 SECONDARY = ["paris-locations", "erotic-massage-in-france", "job-offers", "fidelity-card", "faq", "about", "testimonials",
-             "discounts", "terms-and-conditions", "dmca-policy", "partners", "blog", "sitemap"]
+             "discounts", "terms-and-conditions", "dmca-policy", "partners", "blog", "sitemap", "contact", "book-your-massage"]
 norm = lambda s: re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-⛿️]")  # emoji only; keeps the ✓ (U+2713) of the check lists
 
