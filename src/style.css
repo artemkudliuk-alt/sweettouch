@@ -944,3 +944,11 @@ button.btn { border: 0; }
 .posts .post--more { grid-template-rows: none; }
 .posts .post--more span { font: italic 400 clamp(26px, 2.4vw, 34px)/1.1 var(--serif); color: var(--or); opacity: 1; }
 .posts .post--more { align-content: center; justify-content: center; }
+/* Scrollbars in the site's palette (client 26.11): a thin warm line on the dark page instead of the white default bar */
+@supports not selector(::-webkit-scrollbar) { html { scrollbar-width: thin; scrollbar-color: rgb(184 146 90 / 0.55) var(--nuit); } } /* Firefox; Chrome/Safari use the rules below (no arrow buttons) */
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--nuit); }
+::-webkit-scrollbar-thumb { background: rgb(184 146 90 / 0.55); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--or); }
+textarea, .dd__list, .fdd__list { scrollbar-width: thin; scrollbar-color: rgb(184 146 90 / 0.45) transparent; }
