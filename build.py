@@ -607,12 +607,11 @@ def build_girl(g, rows):
       <dl class="facts ptabs__a">{facts}</dl>
       <div class="ptabs__b">{locs}</div>
     </div>
-    <h2 class="prof__h3">About</h2>
-    {about}
   </div>
 </section>
 <section class="sect prof2" data-tone="noir">
   <div><h2 class="h2 h2--m">Working hours</h2><dl class="facts facts--hours">{hours}</dl></div>
+  <div><h2 class="h2 h2--m">About {e(n)}</h2>{about}</div>
 </section>
 <section class="sect" data-tone="noir"><h2 class="h2 h2--m">{e(n)} provides</h2>{svc}</section>
 <section class="sect girls" data-tone="wine"><h2 class="h2 h2--m">Other masseuses</h2>
@@ -631,7 +630,7 @@ MORDER = list(dict.fromkeys([find_info(n) for n, _ in home_rows() if find_info(n
 
 def ptable(rows, note=""):
     outc = any(len(r) > 2 for r in rows)
-    cell = lambda p: f"<b>{e(p)} €</b>" if p else '<b class="dim">only incall</b>'
+    cell = lambda p: (f"<b>{e(p)} €</b>" if p.isdigit() else '<b class="dim">—</b>') if p else '<b class="dim">only incall</b>'
     head = '<div class="ptable__row ptable__head"><span>Duration</span><span>Incall</span>' + ('<span>Outcall</span>' if outc else "") + "</div>"
     body = "".join(f'<div class="ptable__row"><span>{e(r[0])}</span>{"".join(cell(p) for p in r[1:])}</div>' for r in rows)
     return (f'<div class="ptable{"" if outc else " ptable--2"}">{head}{body}' + (f'<p class="ptable__note">* {e(note)}</p>' if note else "")
@@ -639,7 +638,7 @@ def ptable(rows, note=""):
 
 
 def build_info(d):
-    """Massage page in the client's order: video, prices, who provides it, description, other massages, FAQ and prices again."""
+    """Massage page in the client's order: video with the prices on the first screen, prices, who provides it, other massages, FAQ, prices again; the SEO text last."""
     name, sl = d["name"], d["slug"]
     short = {"4 hands massage with lesbian show": "Lesbian Show", "Erotic Chat with the Masseuse": "Erotic Chat"}.get(name) or re.sub(r"\s*massage$", "", name, flags=re.I) or name
     words, cur = [], ""
@@ -653,29 +652,33 @@ def build_info(d):
     vid = f"massage-{sl}" if (ROOT / "public" / "video" / f"massage-{sl}.mp4").exists() else None
     check_svg = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     checks = f'<ul class="checks">{"".join(f"<li>{check_svg}{e(c)}</li>" for c in d["checks"])}</ul>' if d["checks"] else ""
+    outs = [int(r[2]) for r in d["rows"] if len(r) > 2 and (r[2] or "").isdigit()]  # some pages put "-" for "no outcall"
+    quick = ('<dl class="hx__prices">' + "".join(f"<div><dt>{e(r[0])}</dt><dd>{e(r[1])} €</dd></div>" for r in d["rows"] if len(r) > 1 and (r[1] or "").isdigit()) + "</dl>"
+             + f'<p class="hx__pnote">Incall prices{f" · outcall from {min(outs)} €" if outs else ""}</p>') if d["rows"] else ""
     after = f"""<div class="hx__after">
       <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">SweetTouch</a> / <a href="massages.html">Massages &amp; prices</a> / <span>{e(name)}</span></nav>
       {checks}
+      {quick}
       <a class="btn" href="#book">Book online</a>
     </div>"""
     team = ([n for n in d["team"] if n in GIRL] or [g["name"] for g in GIRLS if name in g["services"]] or [g["name"] for g in GIRLS])[:5]  # one row of five
     intro = next((l for l in d["art"] if not l.startswith("#")), "")
     body = f"""{hero(words, name, [f"pv-{sl}" if vid else f"p-{sl}" if (ROOT / "public" / "img" / f"p-{sl}.webp").exists() else f"o-{mimg(name)}"], after, "hx--short", (min(0.24, 1.45 / longest), min(0.27, 1.4 / longest)), video=vid, lh=0.98)}
 <section class="sect split split--dark" data-tone="wine">
-  <div><h2 class="h2 h2--m">Duration &amp; prices</h2>{f"<p>{e(intro)}</p>" if intro else ""}</div>
+  <div><h2 class="h2 h2--m">Duration &amp; prices</h2>{checks.replace('class="checks"', 'class="checks checks--m"')}{f"<p>{e(intro)}</p>" if intro else ""}</div>
   {ptable(d["rows"], d["note"])}
 </section>
 <section class="sect girls" data-tone="noir">
   <h2 class="h2 h2--m">Who provides {e(name)}</h2>
   {girls(team)}
 </section>
-{f'<section class="sect articles" data-tone="wine">{article(d["art"], {})}</section>' if d["art"] else ""}
 {f'<section class="sect massages" id="massages" data-tone="noir"><h2 class="h2 h2--m">Other erotic massage services</h2>{rail([mcard(n, p) for n, p in d["others"]], "Other erotic massage services")}</section>' if d["others"] else ""}
 {faq(d["faq"]) if d["faq"] else ""}
 <section class="sect split split--dark book" data-tone="wine">
   <h2 class="book__title">{e(name)}</h2>
   {ptable(d["rows"], d["note"])}
 </section>
+{f'<section class="sect articles" data-tone="noir">{article(d["art"], {})}</section>' if d["art"] else ""}
 {footer()}"""
     return page(d["title"], (intro or name)[:155], body)
 
@@ -734,7 +737,9 @@ def build_text(sl):
         elif t.endswith("?") and not u and len(nxt) > 60 and not nxt.startswith("#"):
             emit("qa", f'<details class="faq__item" open><summary>{e(t)}</summary><p>{e(nxt)}</p></details>'); k += 1
         elif u and len(t) < 70:
-            if t.lower().startswith(("book online", "buy ", "view all")):
+            if t.lower().startswith("buy "):
+                emit("btn", f'<p class="prose__cta"><a class="btn btn--gold btn--xl" href="{href(u)}">{icon("chat")}{e(t)}</a></p>')
+            elif t.lower().startswith(("book online", "view all")):
                 emit("btn", f'<p><a class="btn btn--line" href="{href(u)}">{e(t)}</a></p>')
             else:
                 emit("chip", f'<li><a href="{href(u)}">{e(t or u.split("//")[-1].strip("/"))}</a></li>')
@@ -753,8 +758,10 @@ def build_text(sl):
     if sl == "job-offers":
         extra = job_form()
     img = f"p-hdr-{sl}" if (ROOT / "public" / "img" / f"p-hdr-{sl}.webp").exists() else None
+    inner = (f'<div class="jobgrid"><div class="prose__in">{"".join(out)}</div><aside class="jobgrid__form" data-lenis-prevent>{extra}</aside></div>'
+             if sl == "job-offers" else f'<div class="prose__in">{"".join(out)}{extra}</div>')
     body = f"""{phead(title, [("SweetTouch", "index.html")], img=img)}
-<section class="sect prose" data-tone="noir"><div class="prose__in">{"".join(out)}{extra}</div></section>
+<section class="sect prose" data-tone="noir">{inner}</section>
 {footer()}"""
     return page(it[0][0][2:] + " - SweetTouch", title, body)
 

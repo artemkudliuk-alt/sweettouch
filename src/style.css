@@ -684,7 +684,9 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 .ptable--2 .ptable__row { grid-template-columns: 1fr 150px; }
 .book .book__title { text-wrap: balance; }
 /* Text pages carried over from the old site */
-.prose__in { max-width: 900px; display: grid; gap: 18px; }
+.prose__in { display: grid; gap: 18px; }
+/* text keeps a readable measure; masseuse grids, tiles, posts and reviews use the full width like the other pages */
+.prose__in > :not(.cgrid):not(.cgrid__foot):not(.dtiles):not(.posts):not(.quotes):not(div:has(> .prose__h2)) { max-width: 900px; }
 .prose__in > p, .prose__ul li, .prose__in .quote blockquote { font-size: 17px; line-height: 1.7; }
 .prose__in > p { opacity: 0.82; }
 .prose__h2 { font: 400 clamp(30px, 3.2vw, 46px)/1.05 var(--serif); letter-spacing: -0.02em; margin-top: 28px; }
@@ -713,7 +715,6 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 .post h3 { font: 400 26px/1.1 var(--serif); margin: 0; }
 .post p { font-size: 15px; opacity: 0.75; margin: 0; }
 .post > span { font-size: 14px; color: var(--or); }
-.prose__in .cgrid--g { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .prose__in > div:has(> .prose__h2) { display: grid; gap: 16px; }
 @media (max-width: 720px) {
   .fstrip { flex-wrap: nowrap; overflow-x: auto; margin-inline: calc(-1 * var(--pad)); padding: 0 var(--pad) 18px; scrollbar-width: none; }
@@ -722,7 +723,6 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
   .fdd__list { left: var(--pad); right: var(--pad); top: auto; margin-top: 8px; }
   .fstrip__count { flex: none; }
   .ptable--2 .ptable__row { grid-template-columns: 1fr 110px; }
-  .prose__in .cgrid--g { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .ptile .card__prices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
 .ptile .card__prices dd { font-size: 22px; }
@@ -788,3 +788,25 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 }
 .sheet-open .nav, .sheet-open .mbar { visibility: hidden; }
 .jf__file input::file-selector-button { font: inherit; font-size: 14px; margin-right: 12px; padding: 8px 16px; border: 0; border-radius: 999px; color: var(--nuit); background: var(--chair); cursor: pointer; }
+/* Massage page: incall prices on the first screen */
+.hx__prices { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 26px; margin: 4px 0 0; }
+.hx__prices div { display: grid; }
+.hx__prices dt { font-size: 13px; opacity: 0.7; }
+.hx__prices dd { margin: 0; color: var(--or); font: 400 clamp(26px, 2.2vw, 34px)/1.1 var(--serif); white-space: nowrap; }
+.hx__pnote { font-size: 13px; opacity: 0.6; margin-top: -10px; }
+.checks--m { display: none; }
+@media (max-width: 720px) {
+  .hx__after .checks { display: none; }
+  .checks--m { display: grid; margin-top: 22px; }
+  .hx__prices { grid-template-columns: repeat(2, auto); gap: 8px 34px; }
+}
+
+/* Job offers: the form rides along on the right while the text scrolls */
+.jobgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 4vw, 64px); align-items: start; }
+.jobgrid__form { position: sticky; top: 96px; max-height: calc(100svh - 112px); overflow-y: auto; scrollbar-width: thin; }
+.jobgrid__form .jf { margin-top: 0; }
+@media (min-width: 1024px) { .jobgrid .jf__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1023px) { .jobgrid { grid-template-columns: 1fr; } .jobgrid__form { position: static; max-height: none; overflow: visible; } }
+.prose__cta .btn--xl { padding: 28px 56px; font-size: 21px; min-width: min(420px, 100%); gap: 12px; margin-top: 12px; box-shadow: 0 18px 50px rgb(242 178 92 / 0.25); }
+.prose__cta .btn--xl svg { width: 22px; height: 22px; }
+@media (max-width: 720px) { .prose__cta .btn--xl { width: 100%; padding: 22px 24px; font-size: 18px; flex: none; } }
