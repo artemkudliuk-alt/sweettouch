@@ -553,11 +553,14 @@ def filters():
               ("Figure", "figure", ["athletic", "normal", "slim"]),
               ("Nationality", "nat", sorted(Counter(g["params"].get("Nationality") for g in GIRLS if g["params"].get("Nationality")))),
               ("Age", "age", ["21-30", "31-40", "mature"]), ("Massage for", "for", ["men", "women", "couples"])]
-    dd = "".join(f'<details class="fdd"><summary>{t}<span class="fdd__n" data-n></span>{icon("down")}</summary><div class="fdd__list" data-lenis-prevent>'
+    dd = "".join(f'<details class="fdd{" fdd--hot" if k in ("cup", "age") else ""}"><summary>{t}<span class="fdd__n" data-n></span>{icon("down")}</summary><div class="fdd__list" data-lenis-prevent>'
                  + "".join(f'<label><input type="checkbox" name="{k}" value="{e(v)}"><span>{e(v.capitalize() if k != "cup" else v)}</span></label>' for v in vals)
                  + "</div></details>" for t, k, vals in groups)
-    return (f'<div class="fstrip" data-filter><span class="fstrip__label">Fast filter</span>{dd}'
-            f'<span class="fstrip__count" data-count>{len(GIRLS)} masseuses</span><button type="button" class="link" data-reset hidden>Reset</button></div>')
+    return (f'<div class="fstrip" data-filter><div class="fstrip__head"><b>Filters</b><button type="button" class="fstrip__x" data-sheet-close aria-label="Close">{icon("down")}</button></div>'
+            f'<button type="button" class="fstrip__all" data-sheet-open>All filters<span class="fdd__n" data-total></span></button>'
+            f'<span class="fstrip__label">Fast filter</span>{dd}'
+            f'<span class="fstrip__count" data-count>{len(GIRLS)} masseuses</span><button type="button" class="link" data-reset hidden>Reset</button>'
+            f'<button type="button" class="btn btn--gold fstrip__show" data-sheet-close>Show <span data-count-n>{len(GIRLS)}</span> masseuses</button></div>')
 
 
 def build_masseuses():
@@ -588,8 +591,9 @@ def build_girl(g, rows):
     others = [x for x in GIRLS if x is not g][:5]
     wa = "https://wa.me/33758963765?text=" + quote(f"Hello SweetTouch! I would like to book a massage with {n}.")
     about = "".join(f'<p class="prof__about">{e(a)}</p>' for a in g["about"])
-    locs = "".join(f'<h3 class="prof__h3">{t}</h3><ul class="plain plain--links">{"".join(f"<li><a href=\"paris-locations.html\">{e(x)}</a></li>" for x in g[k])}</ul>'
-                   for t, k in (("Incall locations", "incall"), ("Outcall locations", "outcall")) if g[k])
+    locs = '<div class="facts facts--loc"><div><dt>Base city</dt><dd>Paris</dd></div></div>' + "".join(
+        f'<h3 class="prof__h3">{t}</h3><ul class="plain plain--links">{"".join(f"<li><a href=\"paris-locations.html\">{e(x)}</a></li>" for x in g[k])}</ul>'
+        for t, k in (("Incall locations", "incall"), ("Outcall locations", "outcall")) if g[k])
     body = f'''<section class="sect prof" data-tone="wine">
   <div class="prof__pics">{pics}</div>
   <div class="prof__info">
@@ -597,14 +601,17 @@ def build_girl(g, rows):
     <h1 class="phead__h">{e(n)}</h1>
     <p class="prof__key"><span class="card__vip">{e(g["tier"].upper())}</span>{e(P["Age"])} y.o. · {e(P["Height"])} · {e(P["Nationality"])}</p>
     <div class="prof__cta"><a class="btn btn--gold" href="index.html?girl={g["slug"]}#book">Book with {e(n)}</a><a class="btn btn--line" href="{e(wa)}">{icon("chat")}WhatsApp</a></div>
-    <dl class="facts">{facts}</dl>
+    <div class="ptabs">
+      <input type="radio" name="ptab" id="ptab-a" checked><label for="ptab-a">{e(n)}</label>
+      <input type="radio" name="ptab" id="ptab-b"><label for="ptab-b">Location</label>
+      <dl class="facts ptabs__a">{facts}</dl>
+      <div class="ptabs__b">{locs}</div>
+    </div>
     <h2 class="prof__h3">About</h2>
     {about}
   </div>
 </section>
 <section class="sect prof2" data-tone="noir">
-  <div><h2 class="h2 h2--m">Locations</h2>
-    {locs}</div>
   <div><h2 class="h2 h2--m">Working hours</h2><dl class="facts facts--hours">{hours}</dl></div>
 </section>
 <section class="sect" data-tone="noir"><h2 class="h2 h2--m">{e(n)} provides</h2>{svc}</section>
@@ -631,16 +638,10 @@ def ptable(rows, note=""):
             + '<a class="btn" href="#book">Book online</a></div>')
 
 
-def mnav(cur):
-    """Massage menu: every massage page, the current one marked; scrolls sideways on phones."""
-    items = "".join(f'<a href="{po.MFILE[sl]}"{" aria-current=\"page\"" if sl == cur else ""}>{e(INFOS[sl]["name"])}</a>' for sl in MORDER)
-    return f'<nav class="mnav" aria-label="Massages"><div class="mnav__track" data-lenis-prevent>{items}</div></nav>'
-
-
 def build_info(d):
     """Massage page in the client's order: video, prices, who provides it, description, other massages, FAQ and prices again."""
     name, sl = d["name"], d["slug"]
-    short = re.sub(r"\s*massage$", "", name, flags=re.I) or name
+    short = {"4 hands massage with lesbian show": "Lesbian Show", "Erotic Chat with the Masseuse": "Erotic Chat"}.get(name) or re.sub(r"\s*massage$", "", name, flags=re.I) or name
     words, cur = [], ""
     for w in short.split():
         if cur and len(cur) + 1 + len(w) > 11:
@@ -660,7 +661,6 @@ def build_info(d):
     team = ([n for n in d["team"] if n in GIRL] or [g["name"] for g in GIRLS if name in g["services"]] or [g["name"] for g in GIRLS])[:5]  # one row of five
     intro = next((l for l in d["art"] if not l.startswith("#")), "")
     body = f"""{hero(words, name, [f"pv-{sl}" if vid else f"p-{sl}" if (ROOT / "public" / "img" / f"p-{sl}.webp").exists() else f"o-{mimg(name)}"], after, "hx--short", (min(0.24, 1.45 / longest), min(0.27, 1.4 / longest)), video=vid, lh=0.98)}
-{mnav(sl)}
 <section class="sect split split--dark" data-tone="wine">
   <div><h2 class="h2 h2--m">Duration &amp; prices</h2>{f"<p>{e(intro)}</p>" if intro else ""}</div>
   {ptable(d["rows"], d["note"])}
@@ -751,13 +751,36 @@ def build_text(sl):
     emit(None, "")
     extra = ""
     if sl == "job-offers":
-        extra = ('<p class="prose__cta"><a class="btn btn--gold" href="https://wa.me/33758963765">' + icon("chat") + 'Apply via WhatsApp</a>'
-                 '<a class="btn btn--line" href="mailto:erotic.sweettouch@gmail.com">' + icon("mail") + 'Apply by email</a></p>')
+        extra = job_form()
     img = f"p-hdr-{sl}" if (ROOT / "public" / "img" / f"p-hdr-{sl}.webp").exists() else None
     body = f"""{phead(title, [("SweetTouch", "index.html")], img=img)}
 <section class="sect prose" data-tone="noir"><div class="prose__in">{"".join(out)}{extra}</div></section>
 {footer()}"""
     return page(it[0][0][2:] + " - SweetTouch", title, body)
+
+
+def job_form():
+    """Application form as on sweettouch.fr/job-offers; main.js shrinks the photos and posts everything to /api/job."""
+    f = lambda nm, lab, t="text": f'<label class="jf__f"><span>{lab} *</span><input name="{nm}" type="{t}" required></label>'
+    fields = "".join(f(*x) for x in (("name", "Name"), ("age", "Age", "number"), ("country", "Country"), ("city", "City"),
+                                      ("languages", "Languages spoken"), ("dress", "Dress size"), ("phone", "Phone number", "tel"),
+                                      ("email", "Email", "email"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram")))
+    return f"""<form class="jf" data-job novalidate>
+  <div class="jf__grid">{fields}</div>
+  <fieldset class="jf__q"><legend>Do you own a private location to provide in-call massages?</legend>
+    <label><input type="radio" name="location" value="Yes"> Yes</label><label><input type="radio" name="location" value="No"> No</label></fieldset>
+  <label class="jf__c"><input type="checkbox" name="outcall_only" value="Yes"> I want to work with you only outcall</label>
+  <label class="jf__f jf__f--wide"><span>Describe your experience *</span><textarea name="experience" rows="5" required></textarea></label>
+  <label class="jf__f jf__f--wide jf__file"><span>Download recent photos *</span><input name="photos" type="file" accept="image/*" multiple required>
+    <small>Required photos: 1. Selfie 2. Full height in underwear 3. Professional photos (if you have them)</small></label>
+  <label class="jf__c"><input type="checkbox" name="escort" value="Yes"> I want to work with you as escort companion</label>
+  <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="book__hp">
+  <button class="btn btn--gold" type="submit"><span data-job-label>Send application</span></button>
+  <p class="book__sent" data-job-msg role="status" aria-live="polite"></p>
+</form>
+<div class="jf__contacts"><h3 class="prose__h3">Contact information</h3>
+  <ul class="links"><li><a href="tel:+33758963765">Phone +33 7 58 96 37 65</a></li><li><a href="https://wa.me/33758963765">WhatsApp +33 7 58 96 37 65</a></li>
+  <li><a href="viber://add?number=+33758963765">Viber +33 7 58 96 37 65</a></li><li><a href="mailto:erotic.sweettouch@gmail.com">erotic.sweettouch@gmail.com</a></li></ul></div>"""
 
 
 def build_sitemap():

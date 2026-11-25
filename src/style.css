@@ -681,12 +681,6 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 .ptile__h { font: italic 400 24px/1.1 var(--serif); margin: 0 0 12px; }
 .ptile a:hover .ptile__h { color: var(--or); }
 /* Massage page: menu of every massage, price table without an outcall column */
-.mnav { position: relative; z-index: 3; border-block: 1px solid var(--line); background: var(--noir, #0c0305); }
-.mnav__track { display: flex; gap: 6px; overflow-x: auto; padding: 14px var(--pad); scrollbar-width: none; }
-.mnav__track::-webkit-scrollbar { display: none; }
-.mnav a { flex: none; padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0.7; white-space: nowrap; transition: opacity 0.24s, background 0.24s; }
-.mnav a:hover { opacity: 1; background: rgb(234 215 197 / 0.06); }
-.mnav a[aria-current] { opacity: 1; color: var(--nuit); background: var(--chair); }
 .ptable--2 .ptable__row { grid-template-columns: 1fr 150px; }
 .book .book__title { text-wrap: balance; }
 /* Text pages carried over from the old site */
@@ -739,3 +733,58 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 .phead__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.62;
   -webkit-mask-image: linear-gradient(to top, transparent 0%, #000 45%); mask-image: linear-gradient(to top, transparent 0%, #000 45%); }
 @media (max-width: 720px) { .phead--img { min-height: 62svh; } .phead__bg { object-position: 65% 50%; } }
+
+/* Profile: "<name> | Location" switch as on the old site */
+.ptabs { display: grid; grid-template-columns: auto auto 1fr; margin-top: 8px; }
+.ptabs > input { position: absolute; opacity: 0; pointer-events: none; }
+.ptabs > label { padding: 10px 18px; margin-bottom: 14px; border-radius: 999px; font-size: 14px; cursor: pointer; opacity: 0.65; transition: opacity 0.24s, background 0.24s; }
+.ptabs > label:hover { opacity: 1; }
+.ptabs > input:checked + label { opacity: 1; color: var(--nuit); background: var(--chair); }
+.ptabs > input:focus-visible + label { outline: 2px solid var(--bougie); outline-offset: 2px; }
+.ptabs__a, .ptabs__b { grid-column: 1 / -1; margin: 0; }
+.ptabs__b, #ptab-b:checked ~ .ptabs__a { display: none; }
+#ptab-b:checked ~ .ptabs__b { display: block; }
+.facts--loc { grid-template-columns: 1fr; max-width: 420px; margin-bottom: 14px; }
+.ptabs__b .prof__h3 { margin: 18px 0 8px; }
+/* Job application form */
+.jf { display: grid; gap: 18px; margin-top: 18px; padding: clamp(22px, 3vw, 34px); border-radius: 22px; background: rgb(234 215 197 / 0.04); box-shadow: inset 0 0 0 1px var(--line); }
+.jf__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.jf__f { display: grid; gap: 6px; font-size: 13px; }
+.jf__f span { opacity: 0.7; }
+.jf__f input, .jf__f textarea { font: inherit; font-size: 16px; color: var(--chair); background: rgb(234 215 197 / 0.06); border: 0; border-radius: 14px; padding: 13px 16px;
+  box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.16); resize: vertical; }
+.jf__f input:focus-visible, .jf__f textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--bougie); }
+.jf__file input { padding: 11px; }
+.jf__file small { opacity: 0.6; font-size: 13px; }
+.jf__q { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 15px; }
+.jf__q legend { padding: 0; margin-bottom: 8px; opacity: 0.85; }
+.jf__c { display: flex; gap: 10px; align-items: center; font-size: 15px; }
+.jf input[type=radio], .jf input[type=checkbox] { accent-color: var(--bougie); width: 17px; height: 17px; }
+.jf .btn { justify-self: start; }
+.jf__contacts { margin-top: 26px; display: grid; gap: 12px; }
+/* Catalog filter on phones: "All filters" opens a full-screen sheet with every group */
+.fstrip__head, .fstrip__all, .fstrip__show { display: none; }
+@media (max-width: 720px) {
+  .jf__grid { grid-template-columns: 1fr; }
+  .fstrip__label { display: none; }
+  .fstrip__all { display: inline-flex; align-items: center; height: 42px; padding: 0 16px; border-radius: 999px; border: 0; font: inherit; font-size: 14px; cursor: pointer; flex: none;
+    color: var(--nuit); background: var(--chair); }
+  .fdd:not(.fdd--hot) { display: none; }
+  .fstrip.is-sheet { position: fixed; inset: 0; z-index: 60; margin: 0; padding: 22px var(--pad) 110px; display: block; overflow-y: auto; background: #140609; }
+  .is-sheet .fstrip__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; font: 400 30px/1 var(--serif); }
+  .is-sheet .fstrip__head b { font-weight: 400; }
+  .fstrip__x { width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; color: var(--chair); background: rgb(234 215 197 / 0.08); cursor: pointer; }
+  .fstrip__x svg { width: 20px; height: 20px; }
+  .is-sheet .fstrip__all, .is-sheet .fstrip__count { display: none; }
+  .is-sheet .fdd { display: block; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .is-sheet .fdd summary { box-shadow: none; padding: 0; height: auto; font: italic 400 22px/1.2 var(--serif); pointer-events: none; }
+  .is-sheet .fdd summary svg { display: none; }
+  .is-sheet .fdd__list { position: static; display: flex; flex-wrap: wrap; gap: 8px; max-height: none; margin: 12px 0 0; padding: 0; background: none; box-shadow: none; backdrop-filter: none; }
+  .is-sheet .fdd__list label { padding: 9px 14px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.2); }
+  .is-sheet .fdd__list label:has(input:checked) { color: var(--nuit); background: var(--chair); box-shadow: none; }
+  .is-sheet .fdd__list input { position: absolute; opacity: 0; }
+  .is-sheet [data-reset]:not([hidden]) { display: inline-block; margin-top: 18px; }
+  .is-sheet .fstrip__show { display: inline-flex; position: fixed; left: var(--pad); right: var(--pad); bottom: 18px; justify-content: center; }
+}
+.sheet-open .nav, .sheet-open .mbar { visibility: hidden; }
+.jf__file input::file-selector-button { font: inherit; font-size: 14px; margin-right: 12px; padding: 8px 16px; border: 0; border-radius: 999px; color: var(--nuit); background: var(--chair); cursor: pointer; }

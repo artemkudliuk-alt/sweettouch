@@ -318,15 +318,66 @@ if (filter) {
     });
     $$(".fdd", filter).forEach((d) => { const n = $$("input:checked", d).length; $("[data-n]", d).textContent = n ? ` · ${n}` : ""; });
     count.textContent = `${shown} masseuse${shown === 1 ? "" : "s"}`;
+    $("[data-count-n]", filter).textContent = shown;
+    const nPicked = $$("input:checked", filter).length;
+    $("[data-total]", filter).textContent = nPicked ? ` · ${nPicked}` : "";
     none.hidden = shown > 0;
     resets[0].hidden = !Object.keys(picked).length;
     ScrollTrigger.refresh();
   };
   filter.addEventListener("change", apply);
+  // Phones: two hot filters stay in the strip, "All filters" opens every group in a full-screen sheet
+
+  // The sheet moves to <body> while open: an animated (transformed) section would trap a fixed panel inside itself
+  const home = document.createComment("filter");
+  filter.before(home);
+  const sheet = (on) => {
+    if (on) document.body.append(filter); else home.after(filter);
+    filter.classList.toggle("is-sheet", on);
+    document.documentElement.classList.toggle("sheet-open", on); // hides the header and the contact bar
+    document.documentElement.style.overflow = on ? "hidden" : "";
+    if (lenis) on ? lenis.stop() : lenis.start();
+    $$(".fdd", filter).forEach((d) => (d.open = on));
+  };
+  $("[data-sheet-open]", filter).addEventListener("click", () => sheet(true));
+  $$("[data-sheet-close]", filter).forEach((b) => b.addEventListener("click", () => { sheet(false); filter.scrollIntoView({ block: "start" }); }));
   resets.forEach((b) => b.addEventListener("click", () => { $$("input", filter).forEach((i) => (i.checked = false)); apply(); }));
-  // One list open at a time; a press outside closes it
-  $$(".fdd", filter).forEach((d) => d.addEventListener("toggle", () => d.open && $$(".fdd", filter).forEach((o) => o !== d && (o.open = false))));
-  document.addEventListener("click", (ev) => { if (!ev.target.closest(".fdd")) $$(".fdd[open]", filter).forEach((d) => (d.open = false)); });
+  // One list open at a time; a press outside closes it (the sheet keeps every group open)
+  const inSheet = () => filter.classList.contains("is-sheet");
+  $$(".fdd", filter).forEach((d) => d.addEventListener("toggle", () => !inSheet() && d.open && $$(".fdd", filter).forEach((o) => o !== d && (o.open = false))));
+  document.addEventListener("click", (ev) => { if (!inSheet() && !ev.target.closest(".fdd")) $$(".fdd[open]", filter).forEach((d) => (d.open = false)); });
+}
+
+/* ---------- Job application: photos shrink in the browser (1600 px JPEG), the whole form goes to /api/job ---------- */
+const job = $("[data-job]");
+if (job) {
+  const msg = $("[data-job-msg]", job), label = $("[data-job-label]", job), btn = $("button[type=submit]", job);
+  const shrink = (file) => new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src); ok(c.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = fail; img.src = URL.createObjectURL(file);
+  });
+  job.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!job.checkValidity()) { job.reportValidity(); return; }
+    const f = new FormData(job), files = [...$("input[type=file]", job).files].slice(0, 6);
+    btn.disabled = true; label.textContent = "Sending…"; msg.textContent = "";
+    try {
+      const photos = await Promise.all(files.map(async (fl) => ({ data: await shrink(fl) })));
+      const body = Object.fromEntries([...f.entries()].filter(([k]) => k !== "photos"));
+      const r = await fetch("/api/job", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, photos }) });
+      if (!(await r.json()).ok) throw 0;
+      job.reset(); msg.textContent = "Thank you! Your application has been sent. We will contact you soon.";
+    } catch {
+      msg.textContent = "Could not send. Please write to us on WhatsApp +33 7 58 96 37 65 or erotic.sweettouch@gmail.com.";
+    }
+    btn.disabled = false; label.textContent = "Send application";
+  });
 }
 
 /* ---------- Stage: a still block, the advantages beside one photo ---------- */
