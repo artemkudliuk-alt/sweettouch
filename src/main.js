@@ -91,7 +91,10 @@ if (hx) {
   const useVid = !!vid && !reduce;
   const narrow = matchMedia("(max-width: 767px), (orientation: portrait) and (max-width: 1024px)").matches;
   if (vid) vid.poster = narrow ? vid.dataset.posterM : vid.dataset.poster;
-  if (useVid) { vid.src = narrow ? vid.dataset.srcM : vid.dataset.src; vid.play().catch(() => {}); }
+  // The clip starts after the page has loaded (poster first), so it never competes with the first screen; skipped on Save-Data / 2G
+  const slow = navigator.connection && (navigator.connection.saveData || /2g/.test(navigator.connection.effectiveType || ""));
+  const startVid = () => { vid.src = narrow ? vid.dataset.srcM : vid.dataset.src; vid.play().catch(() => {}); };
+  if (useVid && !slow) document.readyState === "complete" ? startVid() : addEventListener("load", startVid, { once: true });
 
   /* The SVG lives in screen pixels: viewBox = viewport, so the masked word is laid out and scaled as vector, never as a bitmap */
   const measure = document.createElement("canvas").getContext("2d");

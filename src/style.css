@@ -686,7 +686,7 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
 /* Text pages carried over from the old site */
 .prose__in { display: grid; gap: 18px; }
 /* text keeps a readable measure; masseuse grids, tiles, posts and reviews use the full width like the other pages */
-.prose__in > :not(.cgrid):not(.cgrid__foot):not(.dtiles):not(.posts):not(.quotes):not(div:has(> .prose__h2)) { max-width: 900px; }
+.prose__in > :not(.cgrid):not(.cgrid__foot):not(.dtiles):not(.posts):not(.quotes):not(.locs):not(.prose__qa):not(div:has(> .prose__h2)) { max-width: 900px; }
 .prose__in > p, .prose__ul li, .prose__in .quote blockquote { font-size: 17px; line-height: 1.7; }
 .prose__in > p { opacity: 0.82; }
 .prose__h2 { font: 400 clamp(30px, 3.2vw, 46px)/1.05 var(--serif); letter-spacing: -0.02em; margin-top: 28px; }
@@ -870,3 +870,57 @@ button.link { background: none; border: 0; padding: 0; cursor: pointer; font: in
   .nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .split--rev { grid-template-columns: 1fr; }
 }
+/* Massage page: the closing call to action replaces the second price table */
+.book--cta { align-items: center; }
+.book--cta .prose__cta { justify-content: flex-end; margin: 0; }
+.prose__cta .btn--line.btn--xl { box-shadow: inset 0 0 0 1px rgb(234 215 197 / 0.4); min-width: 0; }
+@media (max-width: 720px) { .book--cta .prose__cta { justify-content: stretch; } }
+/* Buttons, one standard (polish 25.11): base 48 px, large 64 px, key page actions (.prose__cta) 78 px; icons 18 px; labels never wrap */
+.btn { min-height: 48px; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn--xl { min-height: 64px; }
+.prose__cta .btn { white-space: nowrap; }
+@media (hover: none) { .btn:hover { transform: none; } }
+.prose__cta { align-items: center; }
+button.btn { border: 0; }
+/* Blog: the big first post keeps a fixed image ratio, so nothing jumps while covers load */
+.post:first-child .post__img { aspect-ratio: 16 / 10; height: auto; }
+/* Overflow fixes (polish 25.11): grid children may shrink below their content, long words wrap, long select options never widen the form */
+.split > *, .jobgrid > *, .prof2 > *, .prose__in { min-width: 0; }
+@media (max-width: 1023px) { .jobgrid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) { .prose__cta .btn { white-space: normal; text-align: center; } }
+.jf__f, .jf__f select, .jf__f input, .jf__f textarea { min-width: 0; max-width: 100%; }
+.jf__f select { width: 100%; text-overflow: ellipsis; }
+/* a long value drops under its label instead of squeezing it */
+@media (min-width: 721px) { .facts div { flex-wrap: wrap; column-gap: 16px; row-gap: 2px; } }
+@media (min-width: 721px) { .facts dd { margin-left: auto; } }
+/* Tablet: the price table takes the full row under the text instead of being squeezed */
+@media (min-width: 721px) and (max-width: 1100px) { .split--dark:has(.ptable) { grid-template-columns: minmax(0, 1fr); } }
+.prose__in { grid-template-columns: minmax(0, 1fr); }
+.locs { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+/* Massage rail cards: the column never grows past the card (4 prices used to push it 60 px wider and over the next card) */
+.card { grid-template-columns: minmax(0, 1fr); }
+.card--g { grid-template-columns: minmax(0, 1fr) auto; }
+.rail .card--m .card__prices { grid-template-columns: repeat(2, auto); justify-content: start; gap: 6px 28px; }
+/* Phone: the first-screen prices sit in the bottom block (the hero word is centred above it), not on top of the word */
+.hx__mprices { display: none; }
+@media (max-width: 720px) {
+  .hx__side { display: none; }
+  .hx__mprices { display: grid; gap: 6px; }
+  .hx__mprices .hx__prices { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 4px 18px; }
+  .hx__mprices .hx__prices dd { font-size: clamp(19px, 6vw, 24px); }
+  .hx__mprices .hx__prices { gap: 4px clamp(10px, 4vw, 18px); }
+  .hx__mprices .hx__prices dt { font-size: 12px; }
+  .hx__mprices .hx__pnote { margin: 0; font-size: 12px; }
+}
+/* Contact: the booking form is the page itself; shown whole, not in a scroll box (its bottom was cut by 26 px) */
+.jobgrid__form:has(.bform) { max-height: none; overflow: visible; }
+/* Book your massage: the six location cards use the whole width (three per row), not a 900 px column with half the screen empty */
+.prose .prose__in > .locs.locs { max-width: none; }
+@media (min-width: 1100px) { .locs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* FAQ: questions in two balanced columns on wide screens, so the page is not a narrow strip with the right half empty */
+@media (min-width: 1100px) {
+  .prose > .prose__in > .prose__qa.prose__qa { max-width: none; display: block; columns: 2; column-gap: clamp(48px, 5vw, 96px); }
+  .prose__qa .faq__item { break-inside: avoid; }
+}
+@media (max-width: 720px) { .facts div { justify-content: flex-start; } }

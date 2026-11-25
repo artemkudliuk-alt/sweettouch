@@ -531,7 +531,7 @@ def home_rows():
 def phead(title, crumbs, sub="", img=None):
     trail = " / ".join([*(f'<a href="{u}">{e(t)}</a>' for t, u in crumbs), f"<span>{e(title)}</span>"])
     sub = f'<p class="phead__sub">{e(sub)}</p>' if sub else ""
-    bg = f'<img class="phead__bg" src="img/{img}.webp" alt="" sizes="100vw">' if img else ""
+    bg = f'<img class="phead__bg" src="img/{img}.webp" alt="" sizes="100vw" fetchpriority="high">' if img else ""
     return (f'<header class="sect phead{" phead--img" if img else ""}" data-tone="wine">{bg}<nav class="crumbs" aria-label="Breadcrumb">{trail}</nav>'
             f'<h1 class="phead__h">{e(title)}</h1>{sub}</header>')
 
@@ -578,7 +578,7 @@ def build_girl(g, rows):
     price, n, P = dict(rows), g["name"], g["params"]
     pics = "".join(f'<figure class="prof__pic"><img src="img/g-{g["slug"]}-{i}.webp" alt="{e(n)}" sizes="(max-width: 720px) 92vw, 46vw"{"" if i == 0 else " loading=\"lazy\""}></figure>'
                    for i in range(len(g["files"])))
-    facts = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in P.items())
+    facts = "".join(f"<div><dt>{e(k)}</dt><dd>{e(re.sub(r",\s*", ", ", v))}</dd></div>" for k, v in P.items())
     DAYS = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday", "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
     hours = "".join(f"<div><dt>{DAYS.get(d, d)}</dt><dd>{e(h)}</dd></div>" for d, h in g["hours"].items())
 
@@ -638,7 +638,7 @@ def ptable(rows, note=""):
 
 
 def build_info(d):
-    """Massage page in the client's order: video with the prices on the first screen, prices, who provides it, other massages, FAQ, prices again; the SEO text last."""
+    """Massage page in the client's order: video with the prices on the first screen, prices, who provides it, other massages, FAQ, a booking call to action (one price table only); the SEO text last."""
     name, sl = d["name"], d["slug"]
     short = {"4 hands massage with lesbian show": "Lesbian Show", "Erotic Chat with the Masseuse": "Erotic Chat"}.get(name) or re.sub(r"\s*massage$", "", name, flags=re.I) or name
     words, cur = [], ""
@@ -658,6 +658,7 @@ def build_info(d):
     after = f"""<div class="hx__after">
       <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">SweetTouch</a> / <a href="massages.html">Massages &amp; prices</a> / <span>{e(name)}</span></nav>
       {checks}
+      <div class="hx__mprices">{quick}</div>
       <a class="btn" href="contact.html">Book online</a>
     </div>
     <div class="hx__side">{quick}</div>"""
@@ -674,9 +675,9 @@ def build_info(d):
 </section>
 {f'<section class="sect massages" id="massages" data-tone="noir"><h2 class="h2 h2--m">Other erotic massage services</h2>{rail([mcard(n, p) for n, p in d["others"]], "Other erotic massage services")}</section>' if d["others"] else ""}
 {faq(d["faq"]) if d["faq"] else ""}
-<section class="sect split split--dark book" data-tone="wine">
+<section class="sect split split--dark book book--cta" data-tone="wine">
   <h2 class="book__title">{e(name)}</h2>
-  {ptable(d["rows"], d["note"])}
+  <p class="prose__cta"><a class="btn btn--gold btn--xl" href="contact.html">{icon("calendar")}Book online</a><a class="btn btn--line btn--xl" href="https://wa.me/33758963765">{icon("chat")}WhatsApp</a></p>
 </section>
 {f'<section class="sect articles" data-tone="noir">{article(d["art"], {})}</section>' if d["art"] else ""}
 {footer()}"""
@@ -905,7 +906,7 @@ def build_sitemap():
            ("Massages", [(INFOS[sl]["name"], po.MFILE[sl]) for sl in MORDER]),
            ("Masseuses", [(g["name"], f"girl-{g['slug']}.html") for g in GIRLS])]
     cols = "".join(f'<div><h2 class="prose__h2">{t}</h2><ul class="links">{"".join(f"<li><a href=\"{u}\">{e(n)}</a></li>" for n, u in ls)}</ul></div>' for t, ls in sec)
-    return page("Sitemap - SweetTouch", "All pages of SweetTouch", f"""{phead("Sitemap", [("SweetTouch", "index.html")])}
+    return page("Sitemap - SweetTouch", "All pages of SweetTouch", f"""{phead("Sitemap", [("SweetTouch", "index.html")], img="p-hdr-sitemap")}
 <section class="sect prose" data-tone="noir"><div class="prose__in">{cols}</div></section>
 {footer()}""")
 
