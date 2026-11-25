@@ -722,6 +722,9 @@ def build_text(sl):
         if ((u or "").startswith("#") or not t and not u or t in ("\\", "##", "vip", "silver") or t.endswith(" *") or t == "Yes No"
                 or re.fullmatch(r"(www\.)?sweettouch\.fr/?", (t or (u or "").split("//")[-1]).strip())):
             k += 1; continue
+        if re.fullmatch(r"\d+( \d+)* … \d+", t):
+            emit("post", f'<a class="post post--more" href="https://sweettouch.fr/blog/page/2"><span>More articles</span>{icon("right")}</a>')  # last tile of the grid
+            k += 1; continue
         if t.startswith("girl_video"):
             if k + 2 < len(it) and it[k + 2][0] in GIRL:
                 names.append(it[k + 2][0])
@@ -738,7 +741,7 @@ def build_text(sl):
             city = next((c for c in ("madrid", "marbella", "mallorca", "ibiza", "amsterdam", "rome", "milan") if c in t.lower()), None)
             cover = f'<figure class="post__img"><img src="img/p-blog-{city}.webp" alt="" loading="lazy"></figure>' if city else ""
             emit("post", f'<a class="post" href="{href(u)}">{cover}<div class="post__body"><time>{e(nxt)}</time><h3>{e(t)}</h3><p>{e(ex)}</p><span>Read more</span></div></a>')
-            k += 2 + (1 if ex else 0) + (1 if k + 3 < len(it) and it[k + 3][0].startswith("read more") else 0)
+            k += 1 + (1 if ex else 0) + (1 if k + 3 < len(it) and it[k + 3][0].startswith("read more") else 0)  # date, excerpt, read more (the loop adds the last step)
         elif re.match(r"^\d+ girls?$", nxt) and it[k + 1][1]:
             emit("tile", f'<a class="dtile" href="{href(it[k + 1][1])}"><span>{e(t)}</span><b>{e(nxt)}</b></a>'); k += 1
         elif t.endswith("?") and not u and len(nxt) > 60 and not nxt.startswith("#"):
@@ -765,7 +768,7 @@ def build_text(sl):
     if sl == "job-offers":
         extra = job_form()
     img = f"p-hdr-{sl}" if (ROOT / "public" / "img" / f"p-hdr-{sl}.webp").exists() else None
-    inner = (f'<div class="jobgrid"><div class="prose__in">{"".join(out)}</div><aside class="jobgrid__form" data-lenis-prevent>{extra}</aside></div>'
+    inner = (f'<div class="jobgrid"><div class="prose__in">{"".join(out)}</div><aside class="jobgrid__form" data-sticky-side>{extra}</aside></div>'
              if sl == "job-offers" else f'<div class="prose__in">{"".join(out)}{extra}</div>')
     body = f"""{phead(title, [("SweetTouch", "index.html")], img=img)}
 <section class="sect prose" data-tone="noir">{inner}</section>
@@ -839,7 +842,7 @@ def build_contact():
       <a class="btn btn--line" href="mailto:erotic.sweettouch@gmail.com">{icon("mail")}erotic.sweettouch@gmail.com</a></p>
     <p>Avenue de Wagram 75017, Paris. All locations are open daily from 10:00 to 02:00.</p>
   </div>
-  <aside class="jobgrid__form" data-lenis-prevent>{form}</aside>
+  <aside class="jobgrid__form" data-sticky-side>{form}</aside>
 </div></section>
 {footer()}"""
     return page("Contact us and book an erotic massage in Paris - SweetTouch", "Book an incall or outcall erotic massage in Paris: choose the masseuse, massage, date and duration.", body)

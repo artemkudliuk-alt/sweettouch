@@ -924,3 +924,23 @@ button.btn { border: 0; }
   .prose__qa .faq__item { break-inside: avoid; }
 }
 @media (max-width: 720px) { .facts div { justify-content: flex-start; } }
+/* Blog (client 26.11): an even grid, every post the same size */
+.post:first-child { grid-column: auto; grid-row: auto; }
+.post:first-child .post__img { aspect-ratio: 16 / 10; height: auto; }
+.post:first-child h3 { font-size: 26px; }
+@media (min-width: 721px) and (max-width: 1023px) { .posts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.posts:has(.post--more) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1099px) { .posts:has(.post--more) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .posts:has(.post--more) { grid-template-columns: 1fr; } }
+.post--more { display: grid; place-content: center; justify-items: center; gap: 14px; min-height: 220px; font: italic 400 30px/1.1 var(--serif); color: var(--or); }
+.post--more svg { width: 28px; height: 28px; transition: transform 0.4s var(--ease); }
+.post--more:hover { background: rgb(234 215 197 / 0.05); } .post--more:hover svg { transform: translateX(6px); }
+/* Job offers / contact: the form scrolls with the page (no inner scroll box); main.js sets its sticky top so its bottom is reachable */
+.jobgrid__form { max-height: none; overflow: visible; }
+/* blog cards: text starts right under the photo, "Read more" sits at the bottom of every card */
+.posts .post { grid-template-rows: auto 1fr; align-content: stretch; }
+.posts .post__body { display: flex; flex-direction: column; gap: 10px; }
+.posts .post__body > span { margin-top: auto; padding-top: 6px; }
+.posts .post--more { grid-template-rows: none; }
+.posts .post--more span { font: italic 400 clamp(26px, 2.4vw, 34px)/1.1 var(--serif); color: var(--or); opacity: 1; }
+.posts .post--more { align-content: center; justify-content: center; }

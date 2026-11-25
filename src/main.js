@@ -384,6 +384,14 @@ if (cform) {
   });
 }
 
+/* ---------- Side form beside the text (job offers, contact): sticky, but a form taller than the screen first scrolls
+   with the page until its bottom shows, then stays — no scroll box inside the page ---------- */
+const side = $("[data-sticky-side]");
+if (side) {
+  const fit = () => { side.style.top = `${Math.min(96, innerHeight - side.offsetHeight - 16)}px`; };
+  fit(); addEventListener("resize", fit); new ResizeObserver(fit).observe(side);
+}
+
 /* ---------- Job application: photos shrink in the browser (1600 px JPEG), the whole form goes to /api/job ---------- */
 const job = $("[data-job]");
 if (job) {
