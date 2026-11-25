@@ -37,7 +37,7 @@ GROUPS = [("Massages", None),
           ("Shows", {"Domination massage", "Erotic Peep Show", "Strip Tease and Massage", "Erotic Chat with the Masseuse"}),
           ("Dates & time", {"Date with masseuse", "Party with Masseuses", "All day Option", "Overnight massage", "Sexy guide", "Wife for rent"})]
 SUB = ["Tantric Massage", "Nuru Massage", "Lingam Massage", "Body to Body Massage", "Prostate massage", "Yoni Massage",
-       "Couple Erotic Massage", "Happy Ending Massage", "Domination massage", "Erotic Massage", "Erotic Chat with the Masseuse"]
+       "Couple Erotic Massage", "Happy Ending Massage", "Domination massage", "Erotic Massage", "Erotic Chat with the Masseuse", "Private & Mutual Massage"]
 
 
 # Real masseuses from sweettouch.fr (content/scrape_girls.py); photos are img/g-<slug>-<n>.webp (prep_girls.py)
@@ -296,7 +296,7 @@ def icon(name):
 
 
 def nav():
-    sub = "".join(f'<li><a href="{"tantra.html" if s == "Tantric Massage" else "#"}">{s}</a></li>' for s in SUB)
+    sub = "".join(f'<li><a href="{SUB_HREF(s)}">{s}</a></li>' for s in SUB)
     big = "".join(f'<li><a class="drawer__big" href="{u}" data-img="img/{im}.webp"><span class="drawer__t">{e(t)}</span></a></li>'
                   for t, u, im in MAIN)
     msub = "".join(f'<li><a href="{SUB_HREF(s)}">{e(s)}</a></li>' for s in SUB)
@@ -714,6 +714,10 @@ def build_text(sl):
     while k < len(it):
         t, u = it[k]
         nxt = it[k + 1][0] if k + 1 < len(it) else ""
+        if t in ("\\", "") and u and u.startswith("http") and "sweettouch.fr" not in u:  # logo-only partner link (sweettouch.es)
+            dom = u.split("//")[-1].strip("/")
+            emit("cta", f'<p class="prose__cta"><a class="btn btn--gold btn--xl" href="{e(u)}" rel="noopener">{e(dom.replace("sweettouch", "SweetTouch"))}</a></p>')
+            k += 1; continue
         if ((u or "").startswith("#") or not t and not u or t in ("\\", "##", "vip", "silver") or t.endswith(" *") or t == "Yes No"
                 or re.fullmatch(r"(www\.)?sweettouch\.fr/?", (t or (u or "").split("//")[-1]).strip())):
             k += 1; continue
