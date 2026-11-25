@@ -107,8 +107,8 @@ if (hx) {
     const capR = (measure.measureText("E").actualBoundingBoxAscent || 70) / 100;
     const descR = /[gjpqy]/.test(last) ? (measure.measureText("g").actualBoundingBoxDescent || 20) / 100 : 0;
     // Width sets the size, but on short screens the word must still fit between the header and the copy below it
-    const heightFit = (H - navH - bottomZone - 24) / (capR + 0.82 * (texts.length - 1) + descR);
-    const fs = Math.min(W * +(W < 720 ? svg.dataset.fsM : svg.dataset.fs), 420, heightFit), lh = fs * 0.82;
+    const heightFit = (H - navH - bottomZone - 24) / (capR + (+svg.dataset.lh || 0.82) * (texts.length - 1) + descR);
+    const fs = Math.min(W * +(W < 720 ? svg.dataset.fsM : svg.dataset.fs), 420, heightFit), lh = fs * (+svg.dataset.lh || 0.82);
     const cap = capR * fs, desc = descR * fs, block = cap + (texts.length - 1) * lh;
     const first = navH + (H - navH - bottomZone) / 2 - (block + desc) / 2 + cap; // centre between header and the bottom zone
     groups.forEach((g) => $$("text", g).forEach((t, i) => {
@@ -301,6 +301,33 @@ $$("[data-rail]").forEach((rail) => {
   addEventListener("pointerup", () => { down = false; setTimeout(() => track.classList.remove("is-drag"), 0); });
   track.addEventListener("click", (e) => { if (moved) e.preventDefault(); }, true);
 });
+
+/* ---------- Catalog filter: a card shows when it matches every group that has a choice (OR inside a group) ---------- */
+const filter = $("[data-filter]");
+if (filter) {
+  const cards = $$("[data-cards] > .card"), none = $("[data-none]"), count = $("[data-count]", filter);
+  const resets = $$("[data-reset]");
+  const apply = () => {
+    const picked = {};
+    $$("input:checked", filter).forEach((i) => (picked[i.name] ||= []).push(i.value));
+    let shown = 0;
+    cards.forEach((c) => {
+      const ok = Object.entries(picked).every(([k, vals]) => vals.some((v) => (c.dataset[k] || "").split(" ").includes(v)));
+      c.hidden = !ok;
+      shown += ok;
+    });
+    $$(".fdd", filter).forEach((d) => { const n = $$("input:checked", d).length; $("[data-n]", d).textContent = n ? ` · ${n}` : ""; });
+    count.textContent = `${shown} masseuse${shown === 1 ? "" : "s"}`;
+    none.hidden = shown > 0;
+    resets[0].hidden = !Object.keys(picked).length;
+    ScrollTrigger.refresh();
+  };
+  filter.addEventListener("change", apply);
+  resets.forEach((b) => b.addEventListener("click", () => { $$("input", filter).forEach((i) => (i.checked = false)); apply(); }));
+  // One list open at a time; a press outside closes it
+  $$(".fdd", filter).forEach((d) => d.addEventListener("toggle", () => d.open && $$(".fdd", filter).forEach((o) => o !== d && (o.open = false))));
+  document.addEventListener("click", (ev) => { if (!ev.target.closest(".fdd")) $$(".fdd[open]", filter).forEach((d) => (d.open = false)); });
+}
 
 /* ---------- Stage: a still block, the advantages beside one photo ---------- */
 const stage = $("[data-stage]");

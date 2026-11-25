@@ -1,7 +1,10 @@
 """Builds index.html and tantra.html from the sweettouch.fr text dumps in ../content.
 Run: python -I build.py   (re-run after editing content or templates)"""
-import html, json, re
+import difflib, html, json, re, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))  # -I drops the script folder from the path
+import pages_old as po
 
 ROOT = Path(__file__).parent
 CONTENT = ROOT.parent / "content"
@@ -79,13 +82,28 @@ def dur(d):
     return f"{n} min" if u.lower() == "min" else f"{n} hour{'s' if n != '1' else ''}"
 
 
+def mimg(name):
+    """Old-site photo of a massage: o-<slug>.webp, matched by name."""
+    if name in SLUG:
+        return SLUG[name]
+    hit = difflib.get_close_matches(po.norm(name), [po.norm(k) for k in SLUG], n=1, cutoff=0.6)
+    return next((v for k, v in SLUG.items() if hit and po.norm(k) == hit[0]), "erotic")
+
+
+def mfile(name):
+    """Page of a massage on this site (massage-<old slug>.html, Tantra keeps tantra.html), or None."""
+    s = find_info(name)
+    return po.MFILE[s] if s else None
+
+
 def mcard(name, prices):
-    """Service card; only services with a page of their own (Tantra) are links."""
+    """Service card; links to the massage's own page."""
     dl = "".join(f"<div><dt>{e(dur(d))}</dt><dd>{p} €</dd></div>" for d, p in prices)
-    inner = (f'<figure><img src="img/o-{SLUG[name]}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
+    inner = (f'<figure><img src="img/o-{mimg(name)}.webp" alt="" sizes="(max-width: 720px) 46vw, 30vw" loading="lazy"></figure>'
              f'<h3 class="card__title">{e(name)}</h3><dl class="card__prices">{dl}</dl>')
-    return (f'<a class="card card--m" id="m-{SLUG[name]}" href="tantra.html">{inner}</a>' if name == "Tantra Massage"
-            else f'<div class="card card--m" id="m-{SLUG[name]}">{inner}</div>')
+    href = mfile(name)
+    return (f'<a class="card card--m" id="m-{mimg(name)}" href="{href}">{inner}</a>' if href
+            else f'<div class="card card--m" id="m-{mimg(name)}">{inner}</div>')
 
 
 def rail(cards, label, cls="", auto=False):
@@ -158,6 +176,18 @@ CORE = ["Tantra Massage", "Body to Body Massage", "Nuru Massage", "Erotic Massag
        "Thai Massage", "Deep tissue massage", "Shiatsu Massage", "Feet body massage"]
 
 
+def facets(g):
+    """data-* the catalog filter reads: orientation, cup, figure, nationality, age group, massage for."""
+    P = g["params"]
+    age = int(P.get("Age") or 0)
+    who = {w for w, keys in (("men", ("man", "men")), ("women", ("woman", "women")), ("couples", ("couple",)))
+           if any(k in re.split(r"[ ,]+", P.get("Massage for", "").lower()) for k in keys) or (w == "couples" and "couple" in P.get("Massage for", "").lower())}
+    f = {"orient": "bisexual" if "bi" in P.get("Orientation", "").lower() else "heterosexual", "cup": P.get("Cup size", ""),
+         "figure": P.get("Build", "").lower(), "nat": P.get("Nationality", ""), "age": "21-30" if age <= 30 else "31-40" if age <= 40 else "mature",
+         "for": " ".join(sorted(who))}
+    return "".join(f' data-{k}="{e(v)}"' for k, v in f.items() if v)
+
+
 def gcard(g):
     """Catalog card: photo, name and tier, then the facts a client scans first and three of her massages."""
     P = g["params"]
@@ -167,7 +197,7 @@ def gcard(g):
     svc = sorted(g["services"], key=lambda x: CORE.index(x) if x in CORE else len(CORE))[:2]
     more = len(g["services"]) - len(svc)
     tags = "".join(f"<li>{e(x.replace(' Massage', '').replace(' massage', ''))}</li>" for x in svc) + (f'<li class="card__more">+{more}</li>' if more > 0 else "")
-    return (f'<a class="card card--g" href="girl-{g["slug"]}.html"><figure><img src="img/g-{g["slug"]}-0.webp" alt="{e(g["name"])}" sizes="(max-width: 720px) 46vw, 18vw" loading="lazy"></figure>'
+    return (f'<a class="card card--g" href="girl-{g["slug"]}.html"{facets(g)}><figure><img src="img/g-{g["slug"]}-0.webp" alt="{e(g["name"])}" sizes="(max-width: 720px) 46vw, 18vw" loading="lazy"></figure>'
             f'<span class="card__title">{e(g["name"])}</span><span class="card__vip">{e(g["tier"].upper())}</span>'
             f'<span class="card__meta">{e(meta)}{cup}</span>'
             + (f'<span class="card__where">{e(where)}</span>' if where else "")
@@ -194,8 +224,8 @@ def article(block, images):
         if l.startswith("## "):
             close()
             sec = (l[3:], [])
-        elif l.startswith("### "):
-            sec[1].append(f"<h3>{e(l[4:])}</h3>")
+        elif l.startswith("###"):
+            sec[1].append(f"<h3>{e(l.lstrip('# '))}</h3>")
         elif l.startswith(LIST_STARTS):
             sec[1].append(f'<p class="li">{e(l)}</p>')
         elif l.startswith(LEADS):
@@ -238,12 +268,12 @@ ICON = {  # Lucide-style line icons
     "out": '<path d="M7 17 17 7"/><path d="M7 7h10v10"/>',
 }
 MAIN = [("Our masseuses", "masseuses.html", "b-katlin-2"), ("Massages & prices", "massages.html", "b-leya-3"),
-        ("Paris locations", "https://sweettouch.fr/paris-locations", "b-alina-0"), ("Erotic Massage in France", "https://sweettouch.fr/erotic-massage-in-france", "b-eva-0"),
-        ("Job offers", "https://sweettouch.fr/job-offers", "b-lily-0"), ("Fidelity Card", "https://sweettouch.fr/fidelity-card", "b-katlin-0")]
+        ("Paris locations", "paris-locations.html", "b-alina-0"), ("Erotic Massage in France", "erotic-massage-in-france.html", "b-eva-0"),
+        ("Job offers", "job-offers.html", "b-lily-0"), ("Fidelity Card", "fidelity-card.html", "b-katlin-0")]
 # Header dropdown: Tantra has its own page, the rest open the full price list at their card
 SUB_SLUG = {"Tantric Massage": "tantra", "Prostate massage": "prostate", "Domination massage": "domination", "Erotic Chat with the Masseuse": "chat"}
 def SUB_HREF(s):
-    return "tantra.html" if s == "Tantric Massage" else f"massages.html#m-{SUB_SLUG.get(s) or SLUG.get(s, '')}"
+    return mfile(s) or f"massages.html#m-{SUB_SLUG.get(s) or SLUG.get(s, '')}"
 LANGS = '<a aria-current="true">English</a><a href="https://sweettouch.fr/fr/">Français</a><a href="https://sweettouch.fr/ru/">Русский</a>'
 FLAG = {  # small rectangular flags for the compact language switcher (as on mandra.nextweb.ua)
     "EN": '<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#012169"/><path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="12"/><path d="M30 0v40M0 20h60" stroke="#C8102E" stroke-width="7"/></svg>',
@@ -321,7 +351,7 @@ def marquee(text):
 
 def footer():
     fi = lambda k: f'<svg class="fi" aria-hidden="true"><use href="img/foot-icons.svg#icon-{k}"/></svg>'
-    links = "".join(f'<a href="https://sweettouch.fr/{u}">{fi("footer-" + FOOT_ICON.get(t, "about"))}{t}</a>' for t, u in FOOT_LINKS)
+    links = "".join(f'<a href="{po.local("https://sweettouch.fr/" + u, GSLUGS)}">{fi("footer-" + FOOT_ICON.get(t, "about"))}{t}</a>' for t, u in FOOT_LINKS)
     soc = "".join(f'<a href="{u}" aria-label="{t}"><img src="img/soc-{SOC_ICON[t]}.svg" alt="" width="32" height="32"><span>{t}</span></a>' for t, u in SOCIAL)
     return f'''<footer class="foot" data-tone="noir">
   <div class="foot__top">
@@ -334,7 +364,7 @@ def footer():
 </footer>'''
 
 
-def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
+def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None, lh=None):
     """Vector hero: the word is an SVG mask over full-resolution photos, so scaling it stays sharp.
     main.js sizes the viewBox to the viewport and lays out the lines (fs = font size as share of width, desktop/mobile).
     video: looped full-screen clip under solid letters; imgs[0] is its poster while it loads."""
@@ -345,7 +375,7 @@ def hero(words, label, imgs, after, cls="", fs=(0.165, 0.205), video=None):
   <div class="hx__pin">
     <h1 class="sr-only">{e(label)}</h1>
     {vid}
-    <svg class="hx__svg" data-fs="{fs[0]}" data-fs-m="{fs[1]}" aria-hidden="true">
+    <svg class="hx__svg" data-fs="{fs[0]}" data-fs-m="{fs[1]}"{f' data-lh="{lh}"' if lh else ""} aria-hidden="true">
       <defs><mask id="hx-mask" maskUnits="userSpaceOnUse">
         <rect class="hx__mbg" fill="#000"/><rect class="hx__mfull" fill="#fff" opacity="0"/>
         <g class="hx__words hx__words--mask" fill="#fff" stroke="#fff" stroke-linejoin="round">{texts}</g>
@@ -493,87 +523,48 @@ def build_home():
     return page(L[0], intro[:155], body)
 
 
-def build_tantra():
-    L = lines("page_info_tantra-massage.txt")
-    checks = [l.replace(" ✓", "") for l in L if l.endswith("✓")]
-    others = services(between(L, "Other erotic massage services", "## Tantra Massage in Paris"))
-    art = L[L.index("## Tantra Massage in Paris"):L.index("Our Professional Masseuses", L.index("## Our Professional Masseuses") + 1)]
-    gi = L.index("## FAQ")
-    team = [L[k + 2] for k in range(gi) if L[k] == "girl_video"]
-    fq = L[gi + 1:L.index("Duration", gi)]
-    table = '''<div class="ptable">
-  <div class="ptable__row ptable__head"><span>Duration</span><span>Incall</span><span>Outcall</span></div>
-  <div class="ptable__row"><span>30 min</span><b>300 €</b><b class="dim">only incall €</b></div>
-  <div class="ptable__row"><span>1 hour</span><b>450 €</b><b>500 €</b></div>
-  <div class="ptable__row"><span>90 min</span><b>550 €</b><b>650 €</b></div>
-  <div class="ptable__row"><span>2 hours</span><b>700 €</b><b>750 €</b></div>
-  <p class="ptable__note">* taxi included only inside Paris</p>
-  <a class="btn" href="#book">Book online</a>
-</div>'''
-    check_svg = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    after = f'''<div class="hx__after">
-      <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">SweetTouch</a> / <a href="massages.html">Massages &amp; prices</a> / <span>Tantra Massage</span></nav>
-      <p class="hx__paris">Massage</p>
-      <ul class="checks">{"".join(f"<li>{check_svg}{e(c)}</li>" for c in checks)}</ul>
-      <a class="btn" href="#book">Book online</a>
-    </div>
-    '''
-    body = f'''{hero(["Tantra"], "Tantra Massage", ["o-shiatsu", "o-deep-tissue", "o-prostate"], after, "hx--short", (0.27, 0.27))}
-
-<section class="sect split split--dark" data-tone="wine">
-  <div><h2 class="h2 h2--m">{e(art[0][3:])}</h2><p>{e(art[1])}</p></div>
-  {table}
-</section>
-
-<section class="sect massages" id="massages" data-tone="noir">
-  <h2 class="h2">Other erotic massage services</h2>
-  {rail([mcard(n, p) for n, p in others], "Other erotic massage services")}
-</section>
-
-<section class="sect articles" data-tone="wine">
-{article(art[2:], {"Erotic Origin of Tantra": "o-oriental", "Meet Tantric Massage in Paris": "o-tantra"})}
-</section>
-
-<section class="sect girls" data-tone="noir">
-  <h2 class="h2">Our Professional Masseuses</h2>
-  {girls(team)}
-</section>
-
-{faq(fq)}
-
-<section class="sect split split--dark book" data-tone="wine">
-  <h2 class="book__title">Tantra<br>Massage</h2>
-  {table}
-</section>
-{footer()}'''
-    return page(L[0], art[1][:155], body)
-
-
 def home_rows():
     L = lines("page_.txt")
     return services(between(L, "## Massages", "## We Invite You to SweetTouch for the Best Erotic Massage in Paris"))
 
 
-def phead(title, crumbs, sub=""):
+def phead(title, crumbs, sub="", img=None):
     trail = " / ".join([*(f'<a href="{u}">{e(t)}</a>' for t, u in crumbs), f"<span>{e(title)}</span>"])
     sub = f'<p class="phead__sub">{e(sub)}</p>' if sub else ""
-    return f'<header class="sect phead" data-tone="wine"><nav class="crumbs" aria-label="Breadcrumb">{trail}</nav><h1 class="phead__h">{e(title)}</h1>{sub}</header>'
+    bg = f'<img class="phead__bg" src="img/{img}.webp" alt="" sizes="100vw">' if img else ""
+    return (f'<header class="sect phead{" phead--img" if img else ""}" data-tone="wine">{bg}<nav class="crumbs" aria-label="Breadcrumb">{trail}</nav>'
+            f'<h1 class="phead__h">{e(title)}</h1>{sub}</header>')
 
 
 def build_massages():
-    groups = "\n".join(f'<section class="sect massages" data-tone="noir"><h2 class="h2 h2--m">{e(t)}</h2>'
+    groups = "\n".join(f'<section class="sect massages" data-tone="noir">{"" if i == 0 else f"<h2 class=\"h2 h2--m\">{e(t)}</h2>"}'
                        f'<div class="cgrid cgrid--m">{"".join(mcard(n, p) for n, p in g)}</div></section>'
-                       for (t, _), g in zip(GROUPS, group_rows(home_rows())))
+                       for i, ((t, _), g) in enumerate(zip(GROUPS, group_rows(home_rows()))))
     body = f'''{phead("Massages & prices", [("SweetTouch", "index.html")])}
 {groups}
 {footer()}'''
     return page("Erotic Massages & Prices in Paris - SweetTouch", "All erotic massages of SweetTouch in Paris with prices for every duration.", body)
 
 
+def filters():
+    """Old-site fast filter as one horizontal strip of dropdowns; main.js shows the cards that match every chosen group."""
+    from collections import Counter
+    groups = [("Orientation", "orient", ["heterosexual", "bisexual"]), ("Breast size", "cup", ["A", "B", "C", "D"]),
+              ("Figure", "figure", ["athletic", "normal", "slim"]),
+              ("Nationality", "nat", sorted(Counter(g["params"].get("Nationality") for g in GIRLS if g["params"].get("Nationality")))),
+              ("Age", "age", ["21-30", "31-40", "mature"]), ("Massage for", "for", ["men", "women", "couples"])]
+    dd = "".join(f'<details class="fdd"><summary>{t}<span class="fdd__n" data-n></span>{icon("down")}</summary><div class="fdd__list" data-lenis-prevent>'
+                 + "".join(f'<label><input type="checkbox" name="{k}" value="{e(v)}"><span>{e(v.capitalize() if k != "cup" else v)}</span></label>' for v in vals)
+                 + "</div></details>" for t, k, vals in groups)
+    return (f'<div class="fstrip" data-filter><span class="fstrip__label">Fast filter</span>{dd}'
+            f'<span class="fstrip__count" data-count>{len(GIRLS)} masseuses</span><button type="button" class="link" data-reset hidden>Reset</button></div>')
+
+
 def build_masseuses():
     L = lines("page_girl.txt")
     body = f'''{phead(L[L.index("# Paris Luxury Sweet Girls")][2:], [("SweetTouch", "index.html")], "Best selection of sexy masseuses in Paris & France")}
-<section class="sect girls" data-tone="noir"><div class="cgrid cgrid--g">{"".join(gcard(g) for g in GIRLS)}</div></section>
+<section class="sect girls" data-tone="noir">{filters()}<div class="cgrid cgrid--g" data-cards>{"".join(gcard(g) for g in GIRLS)}</div>
+  <p class="fstrip__none" data-none hidden>No masseuse matches these filters. <button type="button" class="link" data-reset>Reset filters</button></p></section>
 {footer()}'''
     return page(L[0], "Best selection of sexy masseuses in Paris & France", body)
 
@@ -585,16 +576,20 @@ def build_girl(g, rows):
     pics = "".join(f'<figure class="prof__pic"><img src="img/g-{g["slug"]}-{i}.webp" alt="{e(n)}" sizes="(max-width: 720px) 92vw, 46vw"{"" if i == 0 else " loading=\"lazy\""}></figure>'
                    for i in range(len(g["files"])))
     facts = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in P.items())
-    hrs = g["hours"]
-    hours = (f"<div><dt>Every day</dt><dd>{e(next(iter(hrs.values())))}</dd></div>" if hrs and len(set(hrs.values())) == 1
-             else "".join(f"<div><dt>{d}</dt><dd>{e(h)}</dd></div>" for d, h in hrs.items()))
-    items = [f'<li><span>{e(x)}</span><b>from {min(int(p) for _, p in price[x])} €</b></li>' for x in g["services"] if x in price]
-    svc = f'<ul class="svc">{"".join(items[:12])}</ul>' + (
-        f'<details class="svc-more"><summary class="btn btn--line">Show all {len(items)} massages</summary><ul class="svc">{"".join(items[12:])}</ul></details>' if len(items) > 12 else "")
+    DAYS = {"Mon": "Monday", "Tue": "Tuesday", "Wed": "Wednesday", "Thu": "Thursday", "Fri": "Friday", "Sat": "Saturday", "Sun": "Sunday"}
+    hours = "".join(f"<div><dt>{DAYS.get(d, d)}</dt><dd>{e(h)}</dd></div>" for d, h in g["hours"].items())
+
+    def tile(x):
+        dl = "".join(f"<div><dt>{e(dur(d))}</dt><dd>{p} €</dd></div>" for d, p in price[x])
+        head = f'<h3 class="ptile__h">{e(x)}</h3>'
+        href = mfile(x)
+        return f'<li class="ptile">{f"<a href=\"{href}\">{head}</a>" if href else head}<dl class="card__prices">{dl}</dl></li>'
+    svc = f'<ul class="ptiles">{"".join(tile(x) for x in g["services"] if x in price)}</ul>'
     others = [x for x in GIRLS if x is not g][:5]
     wa = "https://wa.me/33758963765?text=" + quote(f"Hello SweetTouch! I would like to book a massage with {n}.")
     about = "".join(f'<p class="prof__about">{e(a)}</p>' for a in g["about"])
-    locs = "".join(f'<h3 class="prof__h3">{t}</h3><ul class="plain">{"".join(f"<li>{e(x)}</li>" for x in g[k])}</ul>' for t, k in (("Incall", "incall"), ("Outcall", "outcall")) if g[k])
+    locs = "".join(f'<h3 class="prof__h3">{t}</h3><ul class="plain plain--links">{"".join(f"<li><a href=\"paris-locations.html\">{e(x)}</a></li>" for x in g[k])}</ul>'
+                   for t, k in (("Incall locations", "incall"), ("Outcall locations", "outcall")) if g[k])
     body = f'''<section class="sect prof" data-tone="wine">
   <div class="prof__pics">{pics}</div>
   <div class="prof__info">
@@ -602,8 +597,9 @@ def build_girl(g, rows):
     <h1 class="phead__h">{e(n)}</h1>
     <p class="prof__key"><span class="card__vip">{e(g["tier"].upper())}</span>{e(P["Age"])} y.o. · {e(P["Height"])} · {e(P["Nationality"])}</p>
     <div class="prof__cta"><a class="btn btn--gold" href="index.html?girl={g["slug"]}#book">Book with {e(n)}</a><a class="btn btn--line" href="{e(wa)}">{icon("chat")}WhatsApp</a></div>
-    {about}
     <dl class="facts">{facts}</dl>
+    <h2 class="prof__h3">About</h2>
+    {about}
   </div>
 </section>
 <section class="sect prof2" data-tone="noir">
@@ -619,9 +615,170 @@ def build_girl(g, rows):
     return page(f"{n} - erotic masseuse in Paris - SweetTouch", (g["about"] or [n])[0][:155], body)
 
 
+GSLUGS = {g["slug"] for g in GIRLS}
+INFOS = {sl: po.parse_info(sl, services) for sl in po.INFO_SLUGS}
+find_info = po.name_to_slug(INFOS)
+# Order of the massage menu: the price list order first, then the pages it does not list
+MORDER = list(dict.fromkeys([find_info(n) for n, _ in home_rows() if find_info(n)] + po.INFO_SLUGS))
+
+
+def ptable(rows, note=""):
+    outc = any(len(r) > 2 for r in rows)
+    cell = lambda p: f"<b>{e(p)} €</b>" if p else '<b class="dim">only incall</b>'
+    head = '<div class="ptable__row ptable__head"><span>Duration</span><span>Incall</span>' + ('<span>Outcall</span>' if outc else "") + "</div>"
+    body = "".join(f'<div class="ptable__row"><span>{e(r[0])}</span>{"".join(cell(p) for p in r[1:])}</div>' for r in rows)
+    return (f'<div class="ptable{"" if outc else " ptable--2"}">{head}{body}' + (f'<p class="ptable__note">* {e(note)}</p>' if note else "")
+            + '<a class="btn" href="#book">Book online</a></div>')
+
+
+def mnav(cur):
+    """Massage menu: every massage page, the current one marked; scrolls sideways on phones."""
+    items = "".join(f'<a href="{po.MFILE[sl]}"{" aria-current=\"page\"" if sl == cur else ""}>{e(INFOS[sl]["name"])}</a>' for sl in MORDER)
+    return f'<nav class="mnav" aria-label="Massages"><div class="mnav__track" data-lenis-prevent>{items}</div></nav>'
+
+
+def build_info(d):
+    """Massage page in the client's order: video, prices, who provides it, description, other massages, FAQ and prices again."""
+    name, sl = d["name"], d["slug"]
+    short = re.sub(r"\s*massage$", "", name, flags=re.I) or name
+    words, cur = [], ""
+    for w in short.split():
+        if cur and len(cur) + 1 + len(w) > 11:
+            words.append(cur); cur = w
+        else:
+            cur = f"{cur} {w}".strip()
+    words.append(cur)
+    longest = max(len(w) for w in words)
+    vid = f"massage-{sl}" if (ROOT / "public" / "video" / f"massage-{sl}.mp4").exists() else None
+    check_svg = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    checks = f'<ul class="checks">{"".join(f"<li>{check_svg}{e(c)}</li>" for c in d["checks"])}</ul>' if d["checks"] else ""
+    after = f"""<div class="hx__after">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">SweetTouch</a> / <a href="massages.html">Massages &amp; prices</a> / <span>{e(name)}</span></nav>
+      {checks}
+      <a class="btn" href="#book">Book online</a>
+    </div>"""
+    team = ([n for n in d["team"] if n in GIRL] or [g["name"] for g in GIRLS if name in g["services"]] or [g["name"] for g in GIRLS])[:5]  # one row of five
+    intro = next((l for l in d["art"] if not l.startswith("#")), "")
+    body = f"""{hero(words, name, [f"pv-{sl}" if vid else f"p-{sl}" if (ROOT / "public" / "img" / f"p-{sl}.webp").exists() else f"o-{mimg(name)}"], after, "hx--short", (min(0.24, 1.45 / longest), min(0.27, 1.4 / longest)), video=vid, lh=0.98)}
+{mnav(sl)}
+<section class="sect split split--dark" data-tone="wine">
+  <div><h2 class="h2 h2--m">Duration &amp; prices</h2>{f"<p>{e(intro)}</p>" if intro else ""}</div>
+  {ptable(d["rows"], d["note"])}
+</section>
+<section class="sect girls" data-tone="noir">
+  <h2 class="h2 h2--m">Who provides {e(name)}</h2>
+  {girls(team)}
+</section>
+{f'<section class="sect articles" data-tone="wine">{article(d["art"], {})}</section>' if d["art"] else ""}
+{f'<section class="sect massages" id="massages" data-tone="noir"><h2 class="h2 h2--m">Other erotic massage services</h2>{rail([mcard(n, p) for n, p in d["others"]], "Other erotic massage services")}</section>' if d["others"] else ""}
+{faq(d["faq"]) if d["faq"] else ""}
+<section class="sect split split--dark book" data-tone="wine">
+  <h2 class="book__title">{e(name)}</h2>
+  {ptable(d["rows"], d["note"])}
+</section>
+{footer()}"""
+    return page(d["title"], (intro or name)[:155], body)
+
+
+def build_text(sl):
+    """Secondary page from the old site, text 1:1: headings, paragraphs, lists, links, plus the blocks some pages have
+    (district tiles, blog posts, reviews, questions, masseuse lists)."""
+    it = po.raw_items(f"pages/{sl}.txt")
+    h1 = next(i for i, (t, _) in enumerate(it) if t.startswith("# "))
+    end = next((i for i, (t, _) in enumerate(it) if t == "You can find us"), len(it))
+    if sl == "faq":
+        end = min(end, next((i for i, (t, u) in enumerate(it) if t == "Leave a Reply" and not u), end))
+    if sl == "job-offers":
+        end = min(end, next((i for i, (t, _) in enumerate(it) if t.startswith("### Apply")), end) + 2)
+    it = it[h1:end]
+    title = it[0][0][2:]
+    out, k, grp = [], 1, None
+    DATE_EU, DATE_US = re.compile(r"^\d{2}\.\d{2}\.\d{4}$"), re.compile(r"^[A-Z][a-z]+ \d{1,2}, \d{4}$")
+
+    def emit(kind, html_):
+        nonlocal grp
+        wrap = {"tile": "dtiles", "quote": "quotes", "post": "posts", "chip": "links", "li": "prose__ul", "qa": "prose__qa"}
+        if kind != grp:
+            if grp in wrap:
+                out.append(f"</{'ul' if grp in ('chip', 'li') else 'div'}>")
+            if kind in wrap:
+                out.append(f'<{"ul" if kind in ("chip", "li") else "div"} class="{wrap[kind]}">')
+            grp = kind
+        out.append(html_)
+
+    href = lambda u: e(po.local(u, GSLUGS))
+    names, after_colon = [], False
+    while k < len(it):
+        t, u = it[k]
+        nxt = it[k + 1][0] if k + 1 < len(it) else ""
+        if ((u or "").startswith("#") or not t and not u or t in ("\\", "##", "vip", "silver") or t.endswith(" *") or t == "Yes No"
+                or re.fullmatch(r"(www\.)?sweettouch\.fr/?", (t or (u or "").split("//")[-1]).strip())):
+            k += 1; continue
+        if t.startswith("girl_video"):
+            if k + 2 < len(it) and it[k + 2][0] in GIRL:
+                names.append(it[k + 2][0])
+            k += 3; continue
+        if names:
+            emit("girls", girls(names)); names = []
+        if t.startswith("#"):
+            lvl = min(len(t) - len(t.lstrip("#")), 3)
+            emit("h", f'<h{lvl} class="prose__h{lvl}">{e(po.fix_head(t).lstrip("# "))}</h{lvl}>'); after_colon = False
+        elif DATE_EU.match(it[k + 2][0] if k + 2 < len(it) else ""):
+            emit("quote", f'<figure class="quote"><blockquote>{e(t)}</blockquote><figcaption>{e(nxt)}<span>{e(it[k + 2][0])}</span></figcaption></figure>'); k += 2
+        elif DATE_US.match(nxt):
+            ex = it[k + 2][0] if k + 2 < len(it) and not it[k + 2][0].startswith("read more") else ""
+            emit("post", f'<a class="post" href="{href(u)}"><time>{e(nxt)}</time><h3>{e(t)}</h3><p>{e(ex)}</p><span>Read more</span></a>')
+            k += 2 + (1 if ex else 0) + (1 if k + 3 < len(it) and it[k + 3][0].startswith("read more") else 0)
+        elif re.match(r"^\d+ girls?$", nxt) and it[k + 1][1]:
+            emit("tile", f'<a class="dtile" href="{href(it[k + 1][1])}"><span>{e(t)}</span><b>{e(nxt)}</b></a>'); k += 1
+        elif t.endswith("?") and not u and len(nxt) > 60 and not nxt.startswith("#"):
+            emit("qa", f'<details class="faq__item" open><summary>{e(t)}</summary><p>{e(nxt)}</p></details>'); k += 1
+        elif u and len(t) < 70:
+            if t.lower().startswith(("book online", "buy ", "view all")):
+                emit("btn", f'<p><a class="btn btn--line" href="{href(u)}">{e(t)}</a></p>')
+            else:
+                emit("chip", f'<li><a href="{href(u)}">{e(t or u.split("//")[-1].strip("/"))}</a></li>')
+        elif after_colon and len(t) < 160 and not t.endswith(":"):
+            emit("li", f"<li>{e(t)}</li>")
+        else:
+            emit("p", f"<p>{e(t)}</p>")
+            after_colon = t.endswith(":")
+        if t.endswith(":") and not t.startswith("#"):
+            after_colon = True
+        k += 1
+    if names:
+        emit("girls", girls(names))
+    emit(None, "")
+    extra = ""
+    if sl == "job-offers":
+        extra = ('<p class="prose__cta"><a class="btn btn--gold" href="https://wa.me/33758963765">' + icon("chat") + 'Apply via WhatsApp</a>'
+                 '<a class="btn btn--line" href="mailto:erotic.sweettouch@gmail.com">' + icon("mail") + 'Apply by email</a></p>')
+    img = f"p-hdr-{sl}" if (ROOT / "public" / "img" / f"p-hdr-{sl}.webp").exists() else None
+    body = f"""{phead(title, [("SweetTouch", "index.html")], img=img)}
+<section class="sect prose" data-tone="noir"><div class="prose__in">{"".join(out)}{extra}</div></section>
+{footer()}"""
+    return page(it[0][0][2:] + " - SweetTouch", title, body)
+
+
+def build_sitemap():
+    sec = [("Main", [("Home", "index.html"), ("Our masseuses", "masseuses.html"), ("Massages & prices", "massages.html")]
+            + [(t, f"{sl}.html") for t, sl in (("Paris locations", "paris-locations"), ("Erotic Massage in France", "erotic-massage-in-france"),
+                                              ("Job offers", "job-offers"), ("Fidelity Card", "fidelity-card"), ("FAQ", "faq"), ("About", "about"),
+                                              ("Testimonials", "testimonials"), ("Discounts", "discounts"), ("Blog", "blog"), ("Partners", "partners"),
+                                              ("Terms and Conditions", "terms-and-conditions"), ("DMCA policy", "dmca-policy"))]),
+           ("Massages", [(INFOS[sl]["name"], po.MFILE[sl]) for sl in MORDER]),
+           ("Masseuses", [(g["name"], f"girl-{g['slug']}.html") for g in GIRLS])]
+    cols = "".join(f'<div><h2 class="prose__h2">{t}</h2><ul class="links">{"".join(f"<li><a href=\"{u}\">{e(n)}</a></li>" for n, u in ls)}</ul></div>' for t, ls in sec)
+    return page("Sitemap - SweetTouch", "All pages of SweetTouch", f"""{phead("Sitemap", [("SweetTouch", "index.html")])}
+<section class="sect prose" data-tone="noir"><div class="prose__in">{cols}</div></section>
+{footer()}""")
+
+
 # Booking lives on the home page; every "#book" link on other pages points there
 away = lambda h: h.replace('href="#book"', 'href="index.html#book"')
-out = {"index.html": build_home(), "tantra.html": away(build_tantra()), "massages.html": away(build_massages()), "masseuses.html": away(build_masseuses())}
+out = {"index.html": build_home(), "massages.html": away(build_massages()), "masseuses.html": away(build_masseuses())}
+out.update({po.MFILE[sl]: away(build_info(d)) for sl, d in INFOS.items()})
+out.update({f"{sl}.html": away(build_sitemap() if sl == "sitemap" else build_text(sl)) for sl in po.SECONDARY})
 out.update({f"girl-{g['slug']}.html": away(build_girl(g, home_rows())) for g in GIRLS})
 for name, h in out.items():
     (ROOT / name).write_text(h, encoding="utf-8")
